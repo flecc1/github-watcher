@@ -34,12 +34,33 @@ func main() {
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		if update.Message != nil {
-			slog.Info(
-				"Received message",
-				"username", update.Message.From.UserName,
-				"text", update.Message.Text,
-			)
+		if update.Message == nil {
+			continue
+		}
+		if !update.Message.IsCommand() {
+			continue
+		}
+		var response string
+
+		switch update.Message.Command() {
+		case "start":
+			response = "Привет! Я GitHub Watcher.\n\n" +
+				"Я помогу следить за статистикой GitHub-репозиториев.\n\n" +
+				"Доступные команды:\n" +
+				"/start — запуск бота\n" +
+				"/help — список команд"
+		case "help":
+			response = "Доступные команды:\n" +
+				"/start — запуск бота\n" +
+				"/help — список команд"
+		default:
+			response = "Неизвестная команда. Используй /help."
+		}
+
+		message := tgbotapi.NewMessage(update.Message.Chat.ID, response)
+
+		if _, err := bot.Send(message); err != nil {
+			slog.Error("Failed to send message", "error", err)
 		}
 	}
 }
