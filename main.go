@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"github-watcher/internal/postgres"
+	"github-watcher/internal/storage"
 	"log"
 	"log/slog"
 	"os"
@@ -37,6 +39,28 @@ func main() {
 	defer db.Close()
 
 	slog.Info("Connected to database")
+	store := postgres.NewStore(db)
+
+	repo, err := store.AddRepository(ctx, "golang/go")
+	if err != nil {
+		if errors.Is(err, storage.ErrRepositoryAlreadyTracked) {
+			slog.Info("Repository already tracked")
+		} else {
+			log.Fatal(err)
+		}
+	} else {
+		slog.Info("Added repository", "fullName", repo.FullName, "id", repo.ID)
+	}
+
+	repositories, err := store.ListRepositories(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, repo := range repositories {
+		slog.Info("Tracked repository", "fullName", repo.FullName)
+	}
+
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Fatal(err)

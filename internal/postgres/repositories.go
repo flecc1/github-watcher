@@ -30,7 +30,7 @@ func (s *Store) AddRepository(ctx context.Context, fullName string) (models.Repo
 	name := strings.TrimSpace(parts[1])
 	fullName = fmt.Sprintf("%s/%s", owner, name)
 
-	query := `INSERT INTO repositories (owner, name, fullName) VALUES ($1, $2, $3)
+	query := `INSERT INTO repositories (owner, name, full_name) VALUES ($1, $2, $3)
 ON CONFLICT DO NOTHING RETURNING id, owner, full_name, name, added_at`
 
 	var repo models.Repository
@@ -49,4 +49,32 @@ ON CONFLICT DO NOTHING RETURNING id, owner, full_name, name, added_at`
 		return models.Repository{}, fmt.Errorf("failed to add repository: %s: %w", fullName, err)
 	}
 	return repo, nil
+}
+
+func (s *Store) ListRepositories(ctx context.Context) ([]models.Repository, error) {
+	query := `SELECT id, owner, name, full_name, added_at FROM repositories
+ORDER BY added_at DESC, id DESC`
+
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list repositories: %w", err)
+	}
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
+
+	repositories := make([]models.Repository, 0)
+
+	for rows.Next() {
+		var repo models.Repository
+		if err := rows.Scan(&repo.ID, &repo.Owner, &repo.Name, &repo.FullName, &repo.AddedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan repository: %w", err)
+		}
+		repositories = append(repositories, repo)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate repositories: %w", err)
+	}
+	return repositories, nil
 }
