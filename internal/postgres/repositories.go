@@ -107,7 +107,7 @@ func (s *Store) SaveSnapshot(ctx context.Context, snapshot models.RepositorySnap
                                   open_pull_requests,
                                   commits,
                                   commits_last_7_days,
-                                  last_commited_at
+                                  last_commit_at
                                   )
                                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                                   `
@@ -135,10 +135,10 @@ func (s *Store) ListSnapshots(ctx context.Context, repositoryID int) ([]models.R
 	query := `SELECT
 id, repository_id, stars, forks, has_readme, open_issues,
 open_pull_requests, collected_at, commits, commits_last_7_days,
-last_commited_at
-FROM repositories_snapshots
+last_commit_at
+FROM repository_snapshots
 WHERE repository_id = $1
-ORDER BY collected_at DESC, id ASC`
+ORDER BY collected_at DESC, id DESC`
 
 	rows, err := s.db.QueryContext(ctx, query, repositoryID)
 	if err != nil {
@@ -166,7 +166,7 @@ ORDER BY collected_at DESC, id ASC`
 			&snapshot.CommitsLast7Days,
 			&snapshot.LastCommitAt,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan snapshot for repository %d: %w", snapshot.RepositoryID, err)
+			return nil, fmt.Errorf("failed to scan snapshot for repository %d: %w", repositoryID, err)
 		}
 		snapshots = append(snapshots, snapshot)
 	}

@@ -65,10 +65,11 @@ func main() {
 	if err != nil {
 		if errors.Is(err, storage.ErrRepositoryNotFound) {
 			slog.Info("Repository not found")
+		} else {
+			log.Fatal(err)
 		}
-		log.Fatal(err)
 	}
-	slog.Info("Deleted repository %s", repo.FullName)
+	slog.Info("Deleted repository", "fullName", repo.FullName)
 
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
