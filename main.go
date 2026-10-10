@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
+	"github-watcher/internal/postgres"
 	"log"
 	"log/slog"
 	"os"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -19,6 +22,21 @@ func main() {
 		log.Fatal("TELEGRAM_BOT_TOKEN environment variable not set")
 	}
 
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("DATABASE_URL environment variable not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	db, err := postgres.Open(ctx, dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	slog.Info("Connected to database")
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Fatal(err)
