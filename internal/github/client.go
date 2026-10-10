@@ -60,3 +60,31 @@ func (c *Client) GetRepository(ctx context.Context, owner string, name string) (
 
 	return repoInfo, nil
 }
+
+func (c *Client) HasReadme(ctx context.Context, owner string, name string) (bool, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/readme", owner, name)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to create README request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("User-Agent", "github-watcher-app")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("failed to request README: %w", err)
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return true, nil
+	case http.StatusNotFound:
+		return false, nil
+	default:
+		return false, fmt.Errorf("GitHub API returned code: %d for README of %s/%s",
+			resp.StatusCode, owner, name)
+	}
+}
