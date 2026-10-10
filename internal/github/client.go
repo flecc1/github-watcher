@@ -1,6 +1,9 @@
 package github
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -25,4 +28,35 @@ type RepositoryInfo struct {
 	Description   string `json:"description"`
 	HasIssues     bool   `json:"has_issues"`
 	DefaultBranch string `json:"default_branch"`
+}
+
+func (c *Client) GetRepository(ctx context.Context, owner string, name string) (RepositoryInfo, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, name)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return RepositoryInfo{}, fmt.Errorf("failed to create GitHub request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("User-Agent", "github-watcher-app")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return RepositoryInfo{}, fmt.Errorf("failed to request GitHub API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return RepositoryInfo{}, fmt.Errorf("GitHub API return status code: %d for %s/%s",
+			resp.StatusCode, owner, name)
+	}
+
+	var repoInfo RepositoryInfo
+
+	if err := json.NewDecoder(resp.Body).Decode(&repoInfo); err != nil {
+		return RepositoryInfo{}, fmt.Errorf("failed to parse GitHub response: %w", err)
+	}
+
+	return repoInfo, nil
 }
