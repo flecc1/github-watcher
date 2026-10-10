@@ -91,32 +91,43 @@ func (c *Client) HasReadme(ctx context.Context, owner string, name string) (bool
 }
 
 func (c *Client) GetOpenPullRequests(ctx context.Context, owner string, name string) (int, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls?state=open&per_page=100", owner, name)
+	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls", owner, name)
+	total := 0
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return 0, fmt.Errorf("failed to create pull requests request: %w", err)
+	for page := 1; ; page++ {
+		reqURL := fmt.Sprintf("%s?state=open&per_page=100&page=%d", endpoint, page)
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+		if err != nil {
+			return 0, fmt.Errorf("failed to create pull requests request: %w", err)
+		}
+
+		req.Header.Set("Accept", "application/vnd.github.v3+json")
+		req.Header.Set("User-Agent", "github-watcher-app")
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return 0, fmt.Errorf("failed to request pull requests: %w", err)
+		}
+	
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			return 0, fmt.Errorf("GitHub API return status code: %d for pull requests of %s/%s",
+				resp.StatusCode, owner, name)
+		}
+
+		var pullRequests []struct{}
+		err = json.NewDecoder(resp.Body).Decode(&pullRequests)
+		resp.Body.Close()
+		if err != nil {
+			return 0, fmt.Errorf("failed to decode pull requests response: %w", err)
+		}
+		total += len(pullRequests)
+		if len(pullRequests) < 100 {
+			break
+		}
 	}
-
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("User-Agent", "github-watcher-app")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return 0, fmt.Errorf("failed to request pull requests: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("GitHub API return status code: %d for pull requests of %s/%s",
-			resp.StatusCode, owner, name)
-	}
-
-	var pullRequests []struct{}
-	if err := json.NewDecoder(resp.Body).Decode(&pullRequests); err != nil {
-		return 0, fmt.Errorf("failed to decode pull requests response: %w", err)
-	}
-	return len(pullRequests), nil
+	return total, nil
 }
 
 func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name string) (int, error) {
