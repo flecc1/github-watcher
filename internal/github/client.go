@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -116,4 +117,45 @@ func (c *Client) GetOpenPullRequests(ctx context.Context, owner string, name str
 		return 0, fmt.Errorf("failed to decode pull requests response: %w", err)
 	}
 	return len(pullRequests), nil
+}
+
+func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name string) (int, error) {
+	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits", owner, name)
+
+	since := time.Now().UTC().AddDate(0, 0, -7).Format(time.RFC3339)
+	total := 0
+
+	for page := 1; ; page++ {
+		reqUrl := fmt.Sprintf("%s?since=%s&per_page=100&page=%d", endpoint, url.QueryEscape(since), page)
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
+		if err != nil {
+			return 0, fmt.Errorf("failed to create commits last 7 days request: %w", err)
+		}
+
+		req.Header.Set("Accept", "application/vnd.github.v3+json")
+		req.Header.Set("User-Agent", "github-watcher-app")
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return 0, fmt.Errorf("failed to request commits: %w", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			req.Body.Close()
+			return 0, fmt.Errorf("GitHub API return status code: %d for commits of %s of %s")
+		}
+
+		var commits []struct{}
+		err = json.NewDecoder(resp.Body).Decode(&commits)
+		resp.Body.Close()
+		if err != nil {
+			return 0, fmt.Errorf("failed to decode commits response: %w", err)
+		}
+		total += len(commits)
+		if len(commits) < 100 {
+			break
+		}
+	}
+	return total, nil
 }
