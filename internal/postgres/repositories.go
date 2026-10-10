@@ -78,3 +78,15 @@ ORDER BY added_at DESC, id DESC`
 	}
 	return repositories, nil
 }
+
+func (s *Store) DeleteRepository(ctx context.Context, fullName string) error {
+	query := `DELETE FROM repositories WHERE LOWER(full_name) = $1`
+	_, err := s.db.ExecContext(ctx, query, strings.TrimSpace(fullName))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return storage.ErrRepositoryNotFound
+		}
+		return fmt.Errorf("failed to delete repository %s: %w", fullName, err)
+	}
+	return nil
+}

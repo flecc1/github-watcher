@@ -61,6 +61,15 @@ func main() {
 		slog.Info("Tracked repository", "fullName", repo.FullName)
 	}
 
+	err = store.DeleteRepository(ctx, "golang/go")
+	if err != nil {
+		if errors.Is(err, storage.ErrRepositoryNotFound) {
+			slog.Info("Repository not found")
+		}
+		log.Fatal(err)
+	}
+	slog.Info("Deleted repository %s", repo.FullName)
+
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Fatal(err)
