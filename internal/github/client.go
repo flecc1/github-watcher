@@ -16,3 +16,13 @@ func NewClient() *Client {
 		},
 	}
 }
+
+type RepositoryInfo struct {
+	FullName      string `json:"full_name"`
+	Stars         int    `json:"stargazers_count"`
+	Forks         int    `json:"forks_count"`
+	OpenIssues    int    `json:"open_issues_count"`
+	Description   string `json:"description"`
+	HasIssues     bool   `json:"has_issues"`
+	DefaultBranch string `json:"default_branch"`
+}
