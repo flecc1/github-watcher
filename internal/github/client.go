@@ -32,9 +32,9 @@ type RepositoryInfo struct {
 }
 
 func (c *Client) GetRepository(ctx context.Context, owner string, name string) (RepositoryInfo, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, name)
+	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, name)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return RepositoryInfo{}, fmt.Errorf("failed to create GitHub request: %w", err)
 	}
@@ -63,9 +63,9 @@ func (c *Client) GetRepository(ctx context.Context, owner string, name string) (
 }
 
 func (c *Client) HasReadme(ctx context.Context, owner string, name string) (bool, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/readme", owner, name)
+	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/readme", owner, name)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return false, fmt.Errorf("failed to create README request: %w", err)
 	}
@@ -109,7 +109,7 @@ func (c *Client) GetOpenPullRequests(ctx context.Context, owner string, name str
 		if err != nil {
 			return 0, fmt.Errorf("failed to request pull requests: %w", err)
 		}
-	
+
 		if resp.StatusCode != http.StatusOK {
 			resp.Body.Close()
 			return 0, fmt.Errorf("GitHub API return status code: %d for pull requests of %s/%s",
@@ -154,7 +154,8 @@ func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name str
 
 		if resp.StatusCode != http.StatusOK {
 			req.Body.Close()
-			return 0, fmt.Errorf("GitHub API return status code: %d for commits of %s of %s")
+			return 0, fmt.Errorf("GitHub API return status code: %d for commits of %s of %s",
+				resp.StatusCode, owner, name)
 		}
 
 		var commits []struct{}
