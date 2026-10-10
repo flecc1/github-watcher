@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"github-watcher/models"
 )
 
@@ -12,3 +13,5 @@ type Storage interface {
 	SaveSnapshot(ctx context.Context, snapshot models.RepositorySnapshot) error
 	ListSnapshots(ctx context.Context, repositoryID int) ([]models.RepositorySnapshot, error)
 }
+
+var ErrRepositoryAlreadyTracked = errors.New("repository already tracked")
