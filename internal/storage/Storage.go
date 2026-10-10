@@ -15,3 +15,4 @@ type Storage interface {
 }
 
 var ErrRepositoryAlreadyTracked = errors.New("repository already tracked")
+var ErrRepositoryNotFound = errors.New("repository not found")
