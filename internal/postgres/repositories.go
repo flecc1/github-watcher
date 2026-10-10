@@ -88,11 +88,90 @@ func (s *Store) DeleteRepository(ctx context.Context, fullName string) error {
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", fullName, err)
+		return fmt.Errorf("failed to get affected rows: %w", err)
 	}
 
 	if rowsAffected == 0 {
 		return storage.ErrRepositoryNotFound
 	}
 	return nil
+}
+
+func (s *Store) SaveSnapshots(ctx context.Context, snapshot models.RepositorySnapshot) error {
+	query := `INSERT INTO repository_snapshots (
+                                  repository_id,
+                                  stars, 
+                                  forks, 
+                                  has_readme, 
+                                  open_issues, 
+                                  open_pull_requests,
+                                  commits,
+                                  commits_last_7_days,
+                                  last_commited_at
+                                  )
+                                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                                  `
+
+	_, err := s.db.ExecContext(
+		ctx,
+		query,
+		snapshot.RepositoryID,
+		snapshot.Stars,
+		snapshot.Forks,
+		snapshot.HasReadme,
+		snapshot.OpenIssues,
+		snapshot.OpenPullRequests,
+		snapshot.Commits,
+		snapshot.CommitsLast7Days,
+		snapshot.LastCommitAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to save snapshot for repository %d: %w", snapshot.RepositoryID, err)
+	}
+	return nil
+}
+
+func (s *Store) ListSnapshots(ctx context.Context, repositoryID int) ([]models.RepositorySnapshot, error) {
+	query := `SELECT
+id, repository_id, stars, forks, has_readme, open_issues,
+open_pull_requests, collected_at, commits, commits_last_7_days,
+last_commited_at
+FROM repositories_snapshots
+WHERE repository_id = $1
+ORDER BY collected_at DESC, id ASC`
+
+	rows, err := s.db.QueryContext(ctx, query, repositoryID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list snapshots for repository %d: %w", repositoryID, err)
+	}
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
+
+	snapshots := make([]models.RepositorySnapshot, 0)
+
+	for rows.Next() {
+		var snapshot models.RepositorySnapshot
+
+		if err := rows.Scan(
+			&snapshot.ID,
+			&snapshot.RepositoryID,
+			&snapshot.Stars,
+			&snapshot.Forks,
+			&snapshot.HasReadme,
+			&snapshot.OpenIssues,
+			&snapshot.OpenPullRequests,
+			&snapshot.CollectedAt,
+			&snapshot.Commits,
+			&snapshot.CommitsLast7Days,
+			&snapshot.LastCommitAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan snapshot for repository %d: %w", snapshot.RepositoryID, err)
+		}
+		snapshots = append(snapshots, snapshot)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate snapshots for repository %d: %w", repositoryID, err)
+	}
+	return snapshots, nil
 }

@@ -13,5 +13,5 @@ type RepositorySnapshot struct {
 	CollectedAt      time.Time
 	Commits          int
 	CommitsLast7Days int
-	LastCommitAt     time.Time
+	LastCommitAt     *time.Time
 }
