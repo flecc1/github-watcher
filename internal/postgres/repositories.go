@@ -97,7 +97,7 @@ func (s *Store) DeleteRepository(ctx context.Context, fullName string) error {
 	return nil
 }
 
-func (s *Store) SaveSnapshots(ctx context.Context, snapshot models.RepositorySnapshot) error {
+func (s *Store) SaveSnapshot(ctx context.Context, snapshot models.RepositorySnapshot) error {
 	query := `INSERT INTO repository_snapshots (
                                   repository_id,
                                   stars, 
