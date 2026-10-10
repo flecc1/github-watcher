@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github-watcher/internal/github"
 	"github-watcher/internal/postgres"
 	"github-watcher/internal/storage"
 	"log"
@@ -41,6 +42,19 @@ func main() {
 	slog.Info("Connected to database")
 	store := postgres.NewStore(db)
 
+	githubClient := github.NewClient()
+
+	repoInfo, err := githubClient.GetRepository(ctx, "golang", "go")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	slog.Info("Fetched github repo info",
+		"fullName", repoInfo.FullName,
+		"stars", repoInfo.Stars,
+		"forks", repoInfo.Forks,
+		"openIssues", repoInfo.OpenIssues,
+	)
 	repo, err := store.AddRepository(ctx, "golang/go")
 	if err != nil {
 		if errors.Is(err, storage.ErrRepositoryAlreadyTracked) {
