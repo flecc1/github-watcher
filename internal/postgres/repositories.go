@@ -80,13 +80,19 @@ ORDER BY added_at DESC, id DESC`
 }
 
 func (s *Store) DeleteRepository(ctx context.Context, fullName string) error {
-	query := `DELETE FROM repositories WHERE LOWER(full_name) = $1`
-	_, err := s.db.ExecContext(ctx, query, strings.TrimSpace(fullName))
+	query := `DELETE FROM repositories WHERE LOWER(full_name) = LOWER($1)`
+	result, err := s.db.ExecContext(ctx, query, strings.TrimSpace(fullName))
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return storage.ErrRepositoryNotFound
-		}
 		return fmt.Errorf("failed to delete repository %s: %w", fullName, err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", fullName, err)
+	}
+
+	if rowsAffected == 0 {
+		return storage.ErrRepositoryNotFound
 	}
 	return nil
 }
