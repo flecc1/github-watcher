@@ -171,3 +171,47 @@ func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name str
 	}
 	return total, nil
 }
+
+//TODO GetLastCommitAt
+
+func (c *Client) GetLastCommitAt(ctx context.Context, owner string, name string) (*time.Time, error) {
+	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits?per_page=1", owner, name)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create last commit request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("User-Agent", "github-watcher-app")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to request last commit: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GitHub API return status code: %d for last commit of %s of %s",
+			resp.StatusCode, owner, name)
+	}
+
+	var commits []struct {
+		Commit struct {
+			Author struct {
+				Date time.Time `json:"date"`
+			} `json:"author"`
+		} `json:"commit"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&commits); err != nil {
+		return nil, fmt.Errorf("failed to decode last commit response: %w", err)
+	}
+
+	if len(commits) == 0 {
+		return nil, nil
+	}
+
+	lastCommitAt := commits[0].Commit.Author.Date
+	return &lastCommitAt, nil
+}
