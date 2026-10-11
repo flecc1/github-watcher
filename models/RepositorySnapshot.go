@@ -11,7 +11,6 @@ type RepositorySnapshot struct {
 	OpenIssues       int
 	OpenPullRequests int
 	CollectedAt      time.Time
-	Commits          int
 	CommitsLast7Days int
 	LastCommitAt     *time.Time
 }
