@@ -20,7 +20,6 @@ CREATE TABLE repository_snapshots (
     open_issues INT NOT NULL,
     open_pull_requests INT NOT NULL,
     collected_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commits INT NOT NULL,
     commits_last_7_days INT NOT NULL,
     last_commit_at TIMESTAMP
 );
