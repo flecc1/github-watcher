@@ -105,11 +105,10 @@ func (s *Store) SaveSnapshot(ctx context.Context, snapshot models.RepositorySnap
                                   has_readme, 
                                   open_issues, 
                                   open_pull_requests,
-                                  commits,
                                   commits_last_7_days,
                                   last_commit_at
                                   )
-                                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                                   `
 
 	_, err := s.db.ExecContext(
@@ -121,7 +120,6 @@ func (s *Store) SaveSnapshot(ctx context.Context, snapshot models.RepositorySnap
 		snapshot.HasReadme,
 		snapshot.OpenIssues,
 		snapshot.OpenPullRequests,
-		snapshot.Commits,
 		snapshot.CommitsLast7Days,
 		snapshot.LastCommitAt,
 	)
@@ -134,7 +132,7 @@ func (s *Store) SaveSnapshot(ctx context.Context, snapshot models.RepositorySnap
 func (s *Store) ListSnapshots(ctx context.Context, repositoryID int) ([]models.RepositorySnapshot, error) {
 	query := `SELECT
 id, repository_id, stars, forks, has_readme, open_issues,
-open_pull_requests, collected_at, commits, commits_last_7_days,
+open_pull_requests, collected_at, commits_last_7_days,
 last_commit_at
 FROM repository_snapshots
 WHERE repository_id = $1
@@ -162,7 +160,6 @@ ORDER BY collected_at DESC, id DESC`
 			&snapshot.OpenIssues,
 			&snapshot.OpenPullRequests,
 			&snapshot.CollectedAt,
-			&snapshot.Commits,
 			&snapshot.CommitsLast7Days,
 			&snapshot.LastCommitAt,
 		); err != nil {
