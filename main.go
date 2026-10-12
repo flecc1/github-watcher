@@ -54,7 +54,7 @@ func main() {
 		return
 	}
 	snapshotsTracker := tracker.NewTracker(githubClient, store)
-	handler := bot.NewHandler(botAPI, repositoryService, snapshotsTracker)
+	handler := bot.NewHandler(botAPI, repositoryService, snapshotsTracker, store)
 	slog.Info("Bot authorized", "username", botAPI.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
