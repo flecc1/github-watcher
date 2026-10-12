@@ -39,8 +39,8 @@ func (s *Service) Add(ctx context.Context, fullName string) (models.Repository, 
 	return repo, nil
 }
 
-func (s *Service) List(ctx context.Context, fullName string) ([]models.Repository, error) {
-
+func (s *Service) List(ctx context.Context) ([]models.Repository, error) {
+	return s.storage.ListRepositories(ctx)
 }
 
 func parseName(fullName string) (string, string, error) {
