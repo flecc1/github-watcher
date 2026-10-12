@@ -68,6 +68,22 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		response = "Привет! Я GitHub Watcher.\n\n" +
 			"/add owner/repo — начать отслеживать репозиторий\n" +
 			"/list — показать отслеживаемые репозитории"
+	case "collect":
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		response, err = h.collectHandler(ctx)
+		cancel()
+		if err != nil {
+			slog.Error("error handling collect command", "error", err)
+			response = "не удалось выполнить команду collect. Попробуйте позже."
+		}
+	case "stats":
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		response, err = h.statsHandler(ctx)
+		cancel()
+		if err != nil {
+			slog.Error("error handling stats command", "error", err)
+			response = "не удалось выполнить команду stats. Попробуйте позже."
+		}
 	default:
 		response = "Неизвестная команда. Используй /help."
 	}
@@ -107,16 +123,16 @@ func (h *Handler) handleList(ctx context.Context) (string, error) {
 	return response.String(), nil
 }
 
-func (h *Handler) collectHandler(ctx context.Context) string {
+func (h *Handler) collectHandler(ctx context.Context) (string, error) {
 	correctCollectCount := 0
 	badCollectCount := 0
 	repos, err := h.repositoryService.List(ctx)
 	if err != nil {
 		slog.Error("error getting repositories", "error", err)
-		return "не получилось получить список репозиториев"
+		return "", errors.New("не получилось получить список репозиториев")
 	}
 	if len(repos) == 0 {
-		return "список репозиториев пуст добавьте например flecc1/URL-Shortener"
+		return "список репозиториев пуст добавьте например flecc1/URL-Shortener", nil
 	}
 	for _, repo := range repos {
 		err := h.tracker.TrackRepository(ctx, repo)
@@ -128,17 +144,17 @@ func (h *Handler) collectHandler(ctx context.Context) string {
 		}
 	}
 	return fmt.Sprintf("успешно собрана %d а %d получились с ошибкой",
-		correctCollectCount, badCollectCount)
+		correctCollectCount, badCollectCount), nil
 }
 
-func (h *Handler) statsHandler(ctx context.Context) string {
+func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 	repos, err := h.repositoryService.List(ctx)
 	if err != nil {
 		slog.Error("error getting repositories", "error", err)
-		return "Ошибка получения данных о репозиториях"
+		return "", errors.New("ошибка получения данных о репозиториях")
 	}
 	if len(repos) == 0 {
-		return "список репозиториев пусть добавьте первый нап flecc1/URL-Shortener"
+		return "список репозиториев пусть добавьте первый нап flecc1/URL-Shortener", nil
 	}
 
 	var response strings.Builder
@@ -162,5 +178,5 @@ func (h *Handler) statsHandler(ctx context.Context) string {
 				reposSnapshot.HasReadme)
 		}
 	}
-	return response.String()
+	return response.String(), nil
 }
