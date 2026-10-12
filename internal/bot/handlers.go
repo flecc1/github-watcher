@@ -179,11 +179,17 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 			fmt.Fprintf(&response, "репозиторий %s не имеет снимков\n", repo.FullName)
 		} else {
 			reposSnapshot := reposSnapshots[0]
-			fmt.Fprintf(&response, "репозиторий %s имеет: Stars %d,"+
-				" Forks %d, OpenIssues %d, OpenPullRequests %d, CommitsLast7Days %d,"+
-				" README %t\n", repo.FullName, reposSnapshot.Stars, reposSnapshot.Forks,
+			fmt.Fprintf(&response, "📦 %s\n"+
+				"⭐ Stars: %d\n"+
+				"🍴 Forks: %d\n"+
+				"🐛 Open issues: %d\n"+
+				"🔀 Open PRs: %d\n"+
+				"💻 Commits за 7 дней: %d\n"+
+				"📄 README: %t\n"+
+				"🕒 Последний сбор: %s\n"+
+				"━━━━━━━━━━━━━━━━━━━━\n", repo.FullName, reposSnapshot.Stars, reposSnapshot.Forks,
 				reposSnapshot.OpenIssues, reposSnapshot.OpenPullRequests, reposSnapshot.CommitsLast7Days,
-				reposSnapshot.HasReadme)
+				reposSnapshot.HasReadme, reposSnapshot.CollectedAt)
 		}
 	}
 	return response.String(), nil
