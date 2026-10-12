@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github-watcher/internal/repository"
 	"github-watcher/internal/storage"
+	"github-watcher/internal/tracker"
 	"log/slog"
 	"strings"
 	"time"
@@ -16,12 +17,14 @@ import (
 type Handler struct {
 	bot               *tgbotapi.BotAPI
 	repositoryService *repository.Service
+	tracker           *tracker.Tracker
 }
 
-func NewHandler(bot *tgbotapi.BotAPI, repositoryService *repository.Service) *Handler {
+func NewHandler(bot *tgbotapi.BotAPI, repositoryService *repository.Service, tracker tracker.Tracker) *Handler {
 	return &Handler{
 		bot:               bot,
 		repositoryService: repositoryService,
+		tracker:           &tracker,
 	}
 }
 
