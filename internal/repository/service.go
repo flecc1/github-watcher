@@ -44,9 +44,19 @@ func (s *Service) List(ctx context.Context) ([]models.Repository, error) {
 }
 
 func parseName(fullName string) (string, string, error) {
+	fullName = strings.TrimSpace(fullName)
 	parts := strings.Split(fullName, "/")
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+
+	if len(parts) != 2 {
 		return "", "", errors.New("invalid repository name")
 	}
-	return parts[0], parts[1], nil
+
+	owner := strings.TrimSpace(parts[0])
+	name := strings.TrimSpace(parts[1])
+
+	if owner == "" || name == "" {
+		return "", "", errors.New("invalid repository name")
+	}
+
+	return owner, name, nil
 }
