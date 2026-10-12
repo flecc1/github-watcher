@@ -44,7 +44,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		response = "Доступные команды:\n" +
 			"/add owner/repo — добавить репозиторий\n" +
 			"/list — показать репозитории\n" +
-			"/collect - собрать статистику о снимках" +
+			"/collect - собрать статистику о снимках\n" +
 			"/stats - вывести статистику"
 	case "add":
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -146,8 +146,14 @@ func (h *Handler) collectHandler(ctx context.Context) (string, error) {
 			correctCollectCount++
 		}
 	}
-	return fmt.Sprintf("успешно собрана %d а %d получились с ошибкой",
-		correctCollectCount, badCollectCount), nil
+
+	if correctCollectCount == 0 {
+		return "Сбор статистики завершился с ошибкой для всех репозиториев.", nil
+	}
+	if badCollectCount == 0 {
+		return fmt.Sprintf("Статистика всех репозиториев собрана успешно: %d.", correctCollectCount), nil
+	}
+	return fmt.Sprintf("Сбор завершён. Успешно: %d, с ошибками: %d.", correctCollectCount, badCollectCount), nil
 }
 
 func (h *Handler) statsHandler(ctx context.Context) (string, error) {
@@ -156,7 +162,7 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("ошибка получения данных о репозиториях %w", err)
 	}
 	if len(repos) == 0 {
-		return "Список отслеживаемых репозиториев пуст. Добавь первый: /add flecc1-URL-Shortener", nil
+		return "Список отслеживаемых репозиториев пуст. Добавь первый: /add flecc1/URL-Shortener", nil
 	}
 
 	var response strings.Builder
@@ -166,7 +172,7 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 		if err != nil {
 			slog.Error("error getting repositories snapshots", "repository", repo.FullName,
 				"error", err)
-			fmt.Fprintf(&response, "ошибка при получения снимков репозитория %s.\n", repo.FullName)
+			fmt.Fprintf(&response, "не удалось получить снимки репозитория %s.\n", repo.FullName)
 			continue
 		}
 		if len(reposSnapshots) == 0 {
