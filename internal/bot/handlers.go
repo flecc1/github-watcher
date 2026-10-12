@@ -104,3 +104,26 @@ func (h *Handler) handleList(ctx context.Context) (string, error) {
 	}
 	return response.String(), nil
 }
+
+func (h *Handler) collectHandler(ctx context.Context) string {
+	correctCollectCount := 0
+	badCollectCount := 0
+	repos, err := h.repositoryService.List(ctx)
+	if err != nil {
+		slog.Error("error getting repositories", "error", err)
+		return "не получилось получить список репозиториев"
+	}
+	if len(repos) == 0 {
+		return "список репозиториев пуст добавьте например flecc1/URL-Shortener"
+	}
+	for _, repo := range repos {
+		err := h.tracker.TrackRepository(ctx, repo)
+		if err != nil {
+			slog.Error("error tracking repository", "repository", "error", repo.FullName, err)
+			badCollectCount++
+		} else {
+			correctCollectCount++
+		}
+	}
+	return fmt.Sprintf("собрана статистика из %d репозиториев а %d получились с ошибкой", correctCollectCount, badCollectCount)
+}
