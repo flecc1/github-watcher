@@ -20,11 +20,11 @@ type Handler struct {
 	tracker           *tracker.Tracker
 }
 
-func NewHandler(bot *tgbotapi.BotAPI, repositoryService *repository.Service, tracker tracker.Tracker) *Handler {
+func NewHandler(bot *tgbotapi.BotAPI, repositoryService *repository.Service, tracker *tracker.Tracker) *Handler {
 	return &Handler{
 		bot:               bot,
 		repositoryService: repositoryService,
-		tracker:           &tracker,
+		tracker:           tracker,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github-watcher/internal/bot"
 	"github-watcher/internal/repository"
+	"github-watcher/internal/tracker"
 	"log/slog"
 	"os"
 	"time"
@@ -52,7 +53,8 @@ func main() {
 		slog.Error("Failed to create bot api", "error", err)
 		return
 	}
-	handler := bot.NewHandler(botAPI, repositoryService)
+	snapshotsTracker := tracker.NewTracker(githubClient, store)
+	handler := bot.NewHandler(botAPI, repositoryService, snapshotsTracker)
 	slog.Info("Bot authorized", "username", botAPI.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
