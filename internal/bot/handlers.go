@@ -18,13 +18,15 @@ type Handler struct {
 	bot               *tgbotapi.BotAPI
 	repositoryService *repository.Service
 	tracker           *tracker.Tracker
+	storage           storage.Storage
 }
 
-func NewHandler(bot *tgbotapi.BotAPI, repositoryService *repository.Service, tracker *tracker.Tracker) *Handler {
+func NewHandler(bot *tgbotapi.BotAPI, repositoryService *repository.Service, tracker *tracker.Tracker, storage storage.Storage) *Handler {
 	return &Handler{
 		bot:               bot,
 		repositoryService: repositoryService,
 		tracker:           tracker,
+		storage:           storage,
 	}
 }
 
@@ -119,11 +121,46 @@ func (h *Handler) collectHandler(ctx context.Context) string {
 	for _, repo := range repos {
 		err := h.tracker.TrackRepository(ctx, repo)
 		if err != nil {
-			slog.Error("error tracking repository", "repository", "error", repo.FullName, err)
+			slog.Error("error tracking repository", "repository", repo.FullName, "error", err)
 			badCollectCount++
 		} else {
 			correctCollectCount++
 		}
 	}
-	return fmt.Sprintf("собрана статистика из %d репозиториев а %d получились с ошибкой", correctCollectCount, badCollectCount)
+	return fmt.Sprintf("успешно собрана %d а %d получились с ошибкой",
+		correctCollectCount, badCollectCount)
+}
+
+func (h *Handler) statsHandler(ctx context.Context) string {
+	repos, err := h.repositoryService.List(ctx)
+	if err != nil {
+		slog.Error("error getting repositories", "error", err)
+		return "Ошибка получения данных о репозиториях"
+	}
+	if len(repos) == 0 {
+		return "список репозиториев пусть добавьте первый нап flecc1/URL-Shortener"
+	}
+
+	var response strings.Builder
+
+	for _, repo := range repos {
+		reposSnapshots, err := h.storage.ListSnapshots(ctx, repo.ID)
+		if err != nil {
+			slog.Error("error getting repositories snapshots", "repository", repo.FullName,
+				"error", err)
+			fmt.Fprintf(&response, "Error in getting repositories snapshots for repository %s.\n", repo.FullName)
+			continue
+		}
+		if len(reposSnapshots) == 0 {
+			fmt.Fprintf(&response, "Repository %s does not have any snapshots!\n", repo.FullName)
+		} else {
+			reposSnapshot := reposSnapshots[0]
+			fmt.Fprintf(&response, "Repository %s have: Stars %d,"+
+				" Forks %d, OpenIssues %d, OpenPullRequests %d, CommitsLast7Days %d,"+
+				" README %t\n", repo.FullName, reposSnapshot.Stars, reposSnapshot.Forks,
+				reposSnapshot.OpenIssues, reposSnapshot.OpenPullRequests, reposSnapshot.CommitsLast7Days,
+				reposSnapshot.HasReadme)
+		}
+	}
+	return response.String()
 }
