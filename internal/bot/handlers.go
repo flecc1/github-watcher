@@ -7,8 +7,10 @@ import (
 	"github-watcher/internal/repository"
 	"github-watcher/internal/storage"
 	"github-watcher/internal/tracker"
+	"github-watcher/models"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -19,6 +21,10 @@ type Handler struct {
 	repositoryService *repository.Service
 	tracker           *tracker.Tracker
 	storage           storage.Storage
+}
+type CollectResult struct {
+	Repository models.Repository
+	err        error
 }
 
 func NewHandler(bot *tgbotapi.BotAPI, repositoryService *repository.Service, tracker *tracker.Tracker, storage storage.Storage) *Handler {
@@ -128,8 +134,14 @@ func (h *Handler) handleList(ctx context.Context) (string, error) {
 }
 
 func (h *Handler) collectHandler(ctx context.Context) (string, error) {
+	jobs := make(chan models.Repository)
+	results := make(chan CollectResult)
+
+	wg := &sync.WaitGroup{}
+
 	correctCollectCount := 0
 	badCollectCount := 0
+
 	repos, err := h.repositoryService.List(ctx)
 	if err != nil {
 		return "", fmt.Errorf("не получилось получить список репозиториев %w", err)
@@ -137,16 +149,60 @@ func (h *Handler) collectHandler(ctx context.Context) (string, error) {
 	if len(repos) == 0 {
 		return "список репозиториев пуст добавьте например flecc1/URL-Shortener", nil
 	}
-	for _, repo := range repos {
-		err := h.tracker.TrackRepository(ctx, repo)
-		if err != nil {
-			slog.Error("error tracking repository", "repository", repo.FullName, "error", err)
+
+	go func() {
+		defer close(jobs)
+		for _, repo := range repos {
+			select {
+			case jobs <- repo:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	for range 3 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case job, ok := <-jobs:
+					if !ok {
+						return
+					}
+
+					err := h.tracker.TrackRepository(ctx, job)
+
+					collectResult := CollectResult{
+						Repository: job,
+						err:        err,
+					}
+
+					select {
+					case results <- collectResult:
+					case <-ctx.Done():
+						return
+					}
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		if result.err != nil {
 			badCollectCount++
 		} else {
 			correctCollectCount++
 		}
 	}
-
 	if correctCollectCount == 0 {
 		return "Сбор статистики завершился с ошибкой для всех репозиториев.", nil
 	}
