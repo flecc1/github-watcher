@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github-watcher/internal/logger"
 	"github-watcher/internal/repository"
 	"github-watcher/internal/storage"
 	"github-watcher/internal/tracker"
@@ -60,16 +61,16 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 			if errors.Is(err, storage.ErrRepositoryAlreadyTracked) {
 				response = "Этот репозиторий уже отслеживается."
 			} else {
-				slog.Error("error handling add command", "error", err)
+				slog.Error("error handling add command", logger.Err(err))
 				response = "Не удалось выполнить команду add. Попробуй позже."
 			}
 		}
 	case "list":
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 		response, err = h.handleList(ctx)
-		cancel()
 		if err != nil {
-			slog.Error("error handling list command", "error", err)
+			slog.Error("error handling list command", logger.Err(err))
 			response = "Не удалось выполнить команду list. Попробуй позже."
 		}
 	case "start":
@@ -83,7 +84,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		response, err = h.collectHandler(ctx)
 		cancel()
 		if err != nil {
-			slog.Error("error handling collect command", "error", err)
+			slog.Error("error handling collect command", logger.Err(err))
 			response = "не удалось выполнить команду collect. Попробуйте позже."
 		}
 	case "stats":
@@ -91,7 +92,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		response, err = h.statsHandler(ctx)
 		cancel()
 		if err != nil {
-			slog.Error("error handling stats command", "error", err)
+			slog.Error("error handling stats command", logger.Err(err))
 			response = "не удалось выполнить команду stats. Попробуйте позже."
 		}
 	default:
@@ -99,7 +100,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 	}
 	message := tgbotapi.NewMessage(update.Message.Chat.ID, response)
 	if _, err := h.bot.Send(message); err != nil {
-		slog.Error("error sending message", "error", err)
+		slog.Error("error sending message", logger.Err(err))
 	}
 }
 
@@ -141,7 +142,7 @@ func (h *Handler) collectHandler(ctx context.Context) (string, error) {
 
 	correctCollectCount := 0
 	badCollectCount := 0
-
+	workers := 5
 	repos, err := h.repositoryService.List(ctx)
 	if err != nil {
 		return "", fmt.Errorf("не получилось получить список репозиториев %w", err)
@@ -161,7 +162,7 @@ func (h *Handler) collectHandler(ctx context.Context) (string, error) {
 		}
 	}()
 
-	for range 3 {
+	for range workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
