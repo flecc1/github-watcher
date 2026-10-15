@@ -48,11 +48,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 	fullName := update.Message.CommandArguments()
 	switch update.Message.Command() {
 	case "help":
-		response = "Доступные команды:\n" +
-			"/add owner/repo — добавить репозиторий\n" +
-			"/list — показать репозитории\n" +
-			"/collect - собрать статистику о снимках\n" +
-			"/stats - вывести статистику"
+		response = helpMessage()
 	case "add":
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		response, err = h.handleAdd(ctx, fullName)
@@ -74,11 +70,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 			response = "Не удалось выполнить команду list. Попробуй позже."
 		}
 	case "start":
-		response = "Привет! Я GitHub Watcher.\n\n" +
-			"/add owner/repo — начать отслеживать репозиторий\n" +
-			"/list — показать отслеживаемые репозитории\n" +
-			"/collect - собрать статистику о снимках\n" +
-			"/stats - вывести статистику"
+		response = startMessage()
 	case "collect":
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		response, err = h.collectHandler(ctx)
@@ -250,4 +242,27 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 		}
 	}
 	return response.String(), nil
+}
+
+func startMessage() string {
+	return "Привет! 👋 Я GitHub Watcher — бот для отслеживания статистики GitHub-репозиториев.\n" +
+		"Что я умею?\n" +
+		"- ⭐ Показывать звёзды и форки.\n" +
+		"- 🐛 Отслеживать открытые issues и pull requests.\n" +
+		"- 💻 Показывать количество коммитов за последние 7 дней.\n" +
+		"- 📊 Сохранять историю собранной статистики.\n" +
+		"Быстрый старт:\n1." +
+		" Добавь репозиторий: /add owner/repo\n2" +
+		". Собери статистику: /collect\n3. " +
+		"Посмотри результаты: /stats\nИспользуй /help, чтобы узнать обо всех командах."
+}
+
+func helpMessage() string {
+	return "Доступные команды:\n" +
+		"/start — приветствие и быстрый старт\n" +
+		"/help — показать список команд\n" +
+		"/add owner/repo — добавить репозиторий\n" +
+		"/list — показать отслеживаемые репозитории\n" +
+		"/collect — собрать и сохранить свежую статистику\n" +
+		"/stats — показать последнюю сохранённую статистику"
 }
