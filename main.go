@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github-watcher/internal/bot"
+	"github-watcher/internal/logger"
 	"github-watcher/internal/repository"
 	"github-watcher/internal/tracker"
 	"log/slog"
@@ -57,7 +58,42 @@ func main() {
 	handler := bot.NewHandler(botAPI, repositoryService, snapshotsTracker, store)
 	slog.Info("Bot authorized", "username", botAPI.Self.UserName)
 
+	commands := []tgbotapi.BotCommand{
+		{
+			Command:     "start",
+			Description: "Запустить бота",
+		},
+		{
+			Command:     "help",
+			Description: "Показать справку по командам",
+		},
+		{
+			Command:     "add",
+			Description: "Добавить репозиторий в формате owner/repo",
+		},
+		{
+			Command:     "list",
+			Description: "Показать отслеживаемые репозитории",
+		},
+		{
+			Command:     "collect",
+			Description: "Собрать свежую статистику репозиториев",
+		},
+		{
+			Command:     "stats",
+			Description: "Показать сохраненную статистику",
+		},
+	}
+
+	config := tgbotapi.NewSetMyCommands(commands...)
+	_, err = botAPI.Request(config)
+	if err != nil {
+		slog.Error("Failed to register bot commands", logger.Err(err))
+	}
+	slog.Info("Bot commands registered")
+
 	u := tgbotapi.NewUpdate(0)
+
 	u.Timeout = 60
 	updates := botAPI.GetUpdatesChan(u)
 
