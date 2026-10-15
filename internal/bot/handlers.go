@@ -52,7 +52,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 	case "add":
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		response, err = h.handleAdd(ctx, fullName)
-		cancel()
+		defer cancel()
 		if err != nil {
 			if errors.Is(err, storage.ErrRepositoryAlreadyTracked) {
 				response = "Этот репозиторий уже отслеживается."
@@ -74,7 +74,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 	case "collect":
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		response, err = h.collectHandler(ctx)
-		cancel()
+		defer cancel()
 		if err != nil {
 			slog.Error("error handling collect command", logger.Err(err))
 			response = "не удалось выполнить команду collect. Попробуйте позже."
@@ -82,7 +82,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 	case "stats":
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		response, err = h.statsHandler(ctx)
-		cancel()
+		defer cancel()
 		if err != nil {
 			slog.Error("error handling stats command", logger.Err(err))
 			response = "не удалось выполнить команду stats. Попробуйте позже."
