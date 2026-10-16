@@ -38,13 +38,25 @@ func NewHandler(bot *tgbotapi.BotAPI, repositoryService *repository.Service, tra
 }
 
 func (h *Handler) HandleUpdate(update tgbotapi.Update) {
-	if update.Message == nil || !update.Message.IsCommand() {
+	if update.Message == nil {
 		return
 	}
 
-	var response string
-	var err error
+	if !update.Message.IsCommand() {
+		message := tgbotapi.NewMessage(
+			update.Message.Chat.ID,
+			"Я понимаю только команды. Используй /help.",
+		)
 
+		if _, err := h.bot.Send(message); err != nil {
+			slog.Error("error sending message", logger.Err(err))
+		}
+
+		return
+	}
+
+	var err error
+	var response string
 	fullName := update.Message.CommandArguments()
 	switch update.Message.Command() {
 	case "help":
