@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"github-watcher/internal/bot"
 	"github-watcher/internal/logger"
 	"github-watcher/internal/repository"
@@ -19,7 +20,9 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		slog.Warn("Could not load .env file", "error", err)
+		if !errors.Is(err, os.ErrNotExist) {
+			slog.Warn("Could not load .env file", logger.Err(err))
+		}
 	}
 
 	token := os.Getenv("TELEGRAM_BOT_TOKEN")
@@ -38,7 +41,7 @@ func main() {
 	db, err := postgres.Open(dbCtx, dsn)
 	dbCancel()
 	if err != nil {
-		slog.Error("Failed to open database", "error", err)
+		slog.Error("Failed to open database", logger.Err(err))
 		return
 	}
 	defer db.Close()
@@ -51,7 +54,7 @@ func main() {
 	repositoryService := repository.NewService(githubClient, store)
 	botAPI, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		slog.Error("Failed to create bot api", "error", err)
+		slog.Error("Failed to create bot api", logger.Err(err))
 		return
 	}
 	snapshotsTracker := tracker.NewTracker(githubClient, store)

@@ -220,7 +220,7 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 		reposSnapshots, err := h.storage.ListSnapshots(ctx, repo.ID)
 		if err != nil {
 			slog.Error("error getting repositories snapshots", "repository", repo.FullName,
-				"error", err)
+				logger.Err(err))
 			fmt.Fprintf(&response, "не удалось получить снимки репозитория %s.\n", repo.FullName)
 			continue
 		}
