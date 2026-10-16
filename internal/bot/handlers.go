@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github-watcher/internal/logger"
-	"github-watcher/internal/repository"
+	"github-watcher/internal/service"
 	"github-watcher/internal/storage"
 	"github-watcher/internal/tracker"
 	"github-watcher/models"
@@ -19,7 +19,7 @@ import (
 
 type Handler struct {
 	bot               *tgbotapi.BotAPI
-	repositoryService *repository.Service
+	repositoryService *service.Service
 	tracker           *tracker.Tracker
 	storage           storage.Storage
 }
@@ -28,7 +28,7 @@ type CollectResult struct {
 	err        error
 }
 
-func NewHandler(bot *tgbotapi.BotAPI, repositoryService *repository.Service, tracker *tracker.Tracker, storage storage.Storage) *Handler {
+func NewHandler(bot *tgbotapi.BotAPI, repositoryService *service.Service, tracker *tracker.Tracker, storage storage.Storage) *Handler {
 	return &Handler{
 		bot:               bot,
 		repositoryService: repositoryService,

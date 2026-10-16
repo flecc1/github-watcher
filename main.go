@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github-watcher/internal/bot"
 	"github-watcher/internal/logger"
-	"github-watcher/internal/repository"
+	"github-watcher/internal/service"
 	"github-watcher/internal/tracker"
 	"log/slog"
 	"os"
@@ -51,7 +51,7 @@ func main() {
 	store := postgres.NewStore(db)
 	githubClient := github.NewClient()
 
-	repositoryService := repository.NewService(githubClient, store)
+	repositoryService := service.NewService(githubClient, store)
 	botAPI, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		slog.Error("Failed to create bot api", logger.Err(err))
