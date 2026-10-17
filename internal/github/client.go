@@ -49,6 +49,9 @@ func (c *Client) GetRepository(ctx context.Context, owner string, name string) (
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return RepositoryInfo{}, fmt.Errorf("repository not found")
+		}
 		return RepositoryInfo{}, fmt.Errorf("GitHub API return status code: %d for %s/%s",
 			resp.StatusCode, owner, name)
 	}
