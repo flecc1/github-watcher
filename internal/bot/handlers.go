@@ -70,7 +70,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 				response = "Этот репозиторий уже отслеживается."
 			} else {
 				slog.Error("error handling add command", logger.Err(err))
-				response = "Не удалось выполнить команду add. Попробуй позже."
+				response = fmt.Sprintf("Не удалось выполнить команду add. Попробуйте позже Error: %s", err)
 			}
 		}
 	case "list":
@@ -79,7 +79,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		response, err = h.handleList(ctx)
 		if err != nil {
 			slog.Error("error handling list command", logger.Err(err))
-			response = "Не удалось выполнить команду list. Попробуй позже."
+			response = fmt.Sprintf("Не удалось выполнить команду list. Попробуй позже. Error: %s", err)
 		}
 	case "start":
 		response = startMessage()
@@ -89,7 +89,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		defer cancel()
 		if err != nil {
 			slog.Error("error handling collect command", logger.Err(err))
-			response = "не удалось выполнить команду collect. Попробуйте позже."
+			response = fmt.Sprintf("не удалось выполнить команду collect. Попробуйте позже. Error: %s", err)
 		}
 	case "stats":
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -97,7 +97,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		defer cancel()
 		if err != nil {
 			slog.Error("error handling stats command", logger.Err(err))
-			response = "не удалось выполнить команду stats. Попробуйте позже."
+			response = fmt.Sprintf("не удалось выполнить команду stats. Попробуйте позже. Error: %s", err)
 		}
 	case "delete":
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -105,7 +105,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		response, err = h.handleDelete(ctx, fullName)
 		if err != nil {
 			slog.Error("error handling delete command", logger.Err(err))
-			response = err.Error()
+			response = fmt.Sprintf("не удалось выполнить команду delete. Попробуйте позже. Error: %s", err)
 		}
 	default:
 		response = "Неизвестная команда. Используй /help."
