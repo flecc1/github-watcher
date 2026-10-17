@@ -99,6 +99,14 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 			slog.Error("error handling stats command", logger.Err(err))
 			response = "не удалось выполнить команду stats. Попробуйте позже."
 		}
+	case "delete":
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		response, err = h.handleDelete(ctx, fullName)
+		if err != nil {
+			slog.Error("error handling delete command", logger.Err(err))
+			response = err.Error()
+		}
 	default:
 		response = "Неизвестная команда. Используй /help."
 	}
@@ -117,6 +125,17 @@ func (h *Handler) handleAdd(ctx context.Context, fullName string) (string, error
 		return "", fmt.Errorf("failed to add repository: %w", err)
 	}
 	return fmt.Sprintf("Репозиторий %s успешно добавлен.", repo.FullName), nil
+}
+
+func (h *Handler) handleDelete(ctx context.Context, fullName string) (string, error) {
+	if strings.TrimSpace(fullName) == "" {
+		return "Укажи удаляемый репозиторий в формате owner/repo.\nПример: /delete golang/go", errors.New("Укажи удаляемый репозиторий в формате owner/repo.\nПример: /delete golang/go")
+	}
+
+	if err := h.repositoryService.Delete(ctx, fullName); err != nil {
+		return "ошибка удаления репозитория", fmt.Errorf("failed to delete repository: %w", err)
+	}
+	return fmt.Sprintf("репозиторий %s успешно удален", fullName), nil
 }
 
 func (h *Handler) handleList(ctx context.Context) (string, error) {
@@ -274,6 +293,7 @@ func helpMessage() string {
 		"/start — приветствие и быстрый старт\n" +
 		"/help — показать список команд\n" +
 		"/add owner/repo — добавить репозиторий\n" +
+		"/delete owner/repo - удалить репозиторий\n" +
 		"/list — показать отслеживаемые репозитории\n" +
 		"/collect — собрать и сохранить свежую статистику\n" +
 		"/stats — показать последнюю сохранённую статистику"
