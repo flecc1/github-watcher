@@ -43,6 +43,23 @@ func (s *Service) List(ctx context.Context) ([]models.Repository, error) {
 	return s.storage.ListRepositories(ctx)
 }
 
+func (s *Service) Delete(ctx context.Context, fullName string) error {
+	owner, repo, err := parseName(fullName)
+	if err != nil {
+		return err
+	}
+
+	checkedName := owner + "/" + repo
+	err = s.storage.DeleteRepository(ctx, checkedName)
+	if err != nil {
+		if errors.Is(err, storage.ErrRepositoryNotFound) {
+			return fmt.Errorf("repository %s not found", checkedName)
+		}
+		return fmt.Errorf("failed to delete repository %s: %w", checkedName, err)
+	}
+	return nil
+}
+
 func parseName(fullName string) (string, string, error) {
 	fullName = strings.TrimSpace(fullName)
 	parts := strings.Split(fullName, "/")
