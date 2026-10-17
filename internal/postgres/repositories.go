@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	models2 "github-watcher/internal/models"
 	"github-watcher/internal/storage"
-	"github-watcher/models"
 	"strings"
 )
 
@@ -18,12 +18,12 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) AddRepository(ctx context.Context, fullName string) (models.Repository, error) {
+func (s *Store) AddRepository(ctx context.Context, fullName string) (models2.Repository, error) {
 	fullName = strings.TrimSpace(fullName)
 
 	parts := strings.Split(fullName, "/")
 	if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
-		return models.Repository{}, fmt.Errorf("invalid repository name %s: expected owner/repository", fullName)
+		return models2.Repository{}, fmt.Errorf("invalid repository name %s: expected owner/repository", fullName)
 	}
 
 	owner := strings.TrimSpace(parts[0])
@@ -33,7 +33,7 @@ func (s *Store) AddRepository(ctx context.Context, fullName string) (models.Repo
 	query := `INSERT INTO repositories (owner, name, full_name) VALUES ($1, $2, $3)
 ON CONFLICT DO NOTHING RETURNING id, owner, full_name, name, added_at`
 
-	var repo models.Repository
+	var repo models2.Repository
 
 	err := s.db.QueryRowContext(ctx, query, owner, name, fullName).Scan(
 		&repo.ID,
@@ -44,14 +44,14 @@ ON CONFLICT DO NOTHING RETURNING id, owner, full_name, name, added_at`
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return models.Repository{}, storage.ErrRepositoryAlreadyTracked
+			return models2.Repository{}, storage.ErrRepositoryAlreadyTracked
 		}
-		return models.Repository{}, fmt.Errorf("failed to add repository: %s: %w", fullName, err)
+		return models2.Repository{}, fmt.Errorf("failed to add repository: %s: %w", fullName, err)
 	}
 	return repo, nil
 }
 
-func (s *Store) ListRepositories(ctx context.Context) ([]models.Repository, error) {
+func (s *Store) ListRepositories(ctx context.Context) ([]models2.Repository, error) {
 	query := `SELECT id, owner, name, full_name, added_at FROM repositories
 ORDER BY added_at DESC, id DESC`
 
@@ -63,10 +63,10 @@ ORDER BY added_at DESC, id DESC`
 		_ = rows.Close()
 	}(rows)
 
-	repositories := make([]models.Repository, 0)
+	repositories := make([]models2.Repository, 0)
 
 	for rows.Next() {
-		var repo models.Repository
+		var repo models2.Repository
 		if err := rows.Scan(&repo.ID, &repo.Owner, &repo.Name, &repo.FullName, &repo.AddedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan repository: %w", err)
 		}
@@ -97,7 +97,7 @@ func (s *Store) DeleteRepository(ctx context.Context, fullName string) error {
 	return nil
 }
 
-func (s *Store) SaveSnapshot(ctx context.Context, snapshot models.RepositorySnapshot) error {
+func (s *Store) SaveSnapshot(ctx context.Context, snapshot models2.RepositorySnapshot) error {
 	query := `INSERT INTO repository_snapshots (
                                   repository_id,
                                   stars, 
@@ -129,7 +129,7 @@ func (s *Store) SaveSnapshot(ctx context.Context, snapshot models.RepositorySnap
 	return nil
 }
 
-func (s *Store) ListSnapshots(ctx context.Context, repositoryID int) ([]models.RepositorySnapshot, error) {
+func (s *Store) ListSnapshots(ctx context.Context, repositoryID int) ([]models2.RepositorySnapshot, error) {
 	query := `SELECT
 id, repository_id, stars, forks, has_readme, open_issues,
 open_pull_requests, collected_at, commits_last_7_days,
@@ -146,10 +146,10 @@ ORDER BY collected_at DESC, id DESC`
 		_ = rows.Close()
 	}(rows)
 
-	snapshots := make([]models.RepositorySnapshot, 0)
+	snapshots := make([]models2.RepositorySnapshot, 0)
 
 	for rows.Next() {
-		var snapshot models.RepositorySnapshot
+		var snapshot models2.RepositorySnapshot
 
 		if err := rows.Scan(
 			&snapshot.ID,

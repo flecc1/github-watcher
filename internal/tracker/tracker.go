@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github-watcher/internal/github"
+	models2 "github-watcher/internal/models"
 	"github-watcher/internal/storage"
-	"github-watcher/models"
 )
 
 type Tracker struct {
@@ -20,7 +20,7 @@ func NewTracker(githubClient *github.Client, storage storage.Storage) *Tracker {
 	}
 }
 
-func (t *Tracker) TrackRepository(ctx context.Context, repo models.Repository) error {
+func (t *Tracker) TrackRepository(ctx context.Context, repo models2.Repository) error {
 	info, err := t.githubClient.GetRepository(ctx, repo.Owner, repo.Name)
 	if err != nil {
 		return fmt.Errorf("failed to get repository info: %w", err)
@@ -46,7 +46,7 @@ func (t *Tracker) TrackRepository(ctx context.Context, repo models.Repository) e
 		return fmt.Errorf("failed to get last commit date: %w", err)
 	}
 
-	snapshot := models.RepositorySnapshot{
+	snapshot := models2.RepositorySnapshot{
 		RepositoryID:     repo.ID,
 		Stars:            info.Stars,
 		Forks:            info.Forks,

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github-watcher/internal/github"
+	"github-watcher/internal/models"
 	"github-watcher/internal/storage"
-	"github-watcher/models"
 	"strings"
 )
 
