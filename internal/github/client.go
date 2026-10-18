@@ -31,16 +31,24 @@ type RepositoryInfo struct {
 	DefaultBranch string `json:"default_branch"`
 }
 
-func (c *Client) GetRepository(ctx context.Context, owner string, name string) (RepositoryInfo, error) {
-	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, name)
-
+func (c *Client) createAPIRequest(ctx context.Context, endpoint string) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return RepositoryInfo{}, fmt.Errorf("failed to create GitHub request: %w", err)
+		return nil, fmt.Errorf("failed to create GitHub request: %w", err)
 	}
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", "github-watcher-app")
+	return req, nil
+}
+
+func (c *Client) GetRepository(ctx context.Context, owner string, name string) (RepositoryInfo, error) {
+	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, name)
+
+	req, err := c.createAPIRequest(ctx, endpoint)
+	if err != nil {
+		return RepositoryInfo{}, err
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -68,13 +76,10 @@ func (c *Client) GetRepository(ctx context.Context, owner string, name string) (
 func (c *Client) HasReadme(ctx context.Context, owner string, name string) (bool, error) {
 	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/readme", owner, name)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	req, err := c.createAPIRequest(ctx, endpoint)
 	if err != nil {
-		return false, fmt.Errorf("failed to create README request: %w", err)
+		return false, err
 	}
-
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("User-Agent", "github-watcher-app")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -100,13 +105,10 @@ func (c *Client) GetOpenPullRequests(ctx context.Context, owner string, name str
 	for page := 1; ; page++ {
 		reqURL := fmt.Sprintf("%s?state=open&per_page=100&page=%d", endpoint, page)
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+		req, err := c.createAPIRequest(ctx, reqURL)
 		if err != nil {
-			return 0, fmt.Errorf("failed to create pull requests request: %w", err)
+			return 0, fmt.Errorf("failed to request GitHub API: %w", err)
 		}
-
-		req.Header.Set("Accept", "application/vnd.github.v3+json")
-		req.Header.Set("User-Agent", "github-watcher-app")
 
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
@@ -142,13 +144,10 @@ func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name str
 	for page := 1; ; page++ {
 		reqUrl := fmt.Sprintf("%s?since=%s&per_page=100&page=%d", endpoint, url.QueryEscape(since), page)
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
+		req, err := c.createAPIRequest(ctx, reqUrl)
 		if err != nil {
-			return 0, fmt.Errorf("failed to create commits last 7 days request: %w", err)
+			return 0, fmt.Errorf("failed to request commits last 7 days: %w", err)
 		}
-
-		req.Header.Set("Accept", "application/vnd.github.v3+json")
-		req.Header.Set("User-Agent", "github-watcher-app")
 
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
@@ -178,13 +177,10 @@ func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name str
 func (c *Client) GetLastCommitAt(ctx context.Context, owner string, name string) (*time.Time, error) {
 	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits?per_page=1", owner, name)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	req, err := c.createAPIRequest(ctx, endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create last commit request: %w", err)
+		return nil, fmt.Errorf("failed to request last commit at: %w", err)
 	}
-
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("User-Agent", "github-watcher-app")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
