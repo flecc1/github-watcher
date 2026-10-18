@@ -156,7 +156,7 @@ func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name str
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			req.Body.Close()
+			resp.Body.Close()
 			return 0, fmt.Errorf("GitHub API return status code: %d for commits of %s of %s",
 				resp.StatusCode, owner, name)
 		}
@@ -174,8 +174,6 @@ func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name str
 	}
 	return total, nil
 }
-
-//TODO GetLastCommitAt
 
 func (c *Client) GetLastCommitAt(ctx context.Context, owner string, name string) (*time.Time, error) {
 	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits?per_page=1", owner, name)
