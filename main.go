@@ -86,6 +86,10 @@ func main() {
 			Command:     "stats",
 			Description: "Показать сохраненную статистику",
 		},
+		{
+			Command:     "delete",
+			Description: "Удалить репозиторий в формате owner/repo",
+		},
 	}
 
 	config := tgbotapi.NewSetMyCommands(commands...)
