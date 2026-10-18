@@ -115,14 +115,15 @@ Open your bot in Telegram and send `/start`.
 
 ## Bot Commands
 
-| Command | Description |
-|---|---|
-| `/start` | Start interacting with the bot |
-| `/help` | Show available commands |
-| `/add owner/repository` | Add a repository to track |
-| `/list` | List tracked repositories |
-| `/collect` | Collect and save new statistics |
-| `/stats` | View previously collected statistics |
+| Command                 | Description                          |
+|-------------------------|--------------------------------------|
+| `/start`                | Start interacting with the bot       |
+| `/help`                 | Show available commands              |
+| `/add owner/repository` | Add a repository to track            |
+| `/delete`               | Delete a repository from track       |
+| `/list`                 | List tracked repositories            |
+| `/collect`              | Collect and save new statistics      |
+| `/stats`                | View previously collected statistics |
 
 ## Database
 
