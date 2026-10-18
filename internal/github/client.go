@@ -2,10 +2,8 @@ package github
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"time"
 )
 
@@ -21,16 +19,6 @@ func NewClient() *Client {
 	}
 }
 
-type RepositoryInfo struct {
-	FullName      string `json:"full_name"`
-	Stars         int    `json:"stargazers_count"`
-	Forks         int    `json:"forks_count"`
-	OpenIssues    int    `json:"open_issues_count"`
-	Description   string `json:"description"`
-	HasIssues     bool   `json:"has_issues"`
-	DefaultBranch string `json:"default_branch"`
-}
-
 func (c *Client) createAPIRequest(ctx context.Context, endpoint string) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -40,175 +28,4 @@ func (c *Client) createAPIRequest(ctx context.Context, endpoint string) (*http.R
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", "github-watcher-app")
 	return req, nil
-}
-
-func (c *Client) GetRepository(ctx context.Context, owner string, name string) (RepositoryInfo, error) {
-	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, name)
-
-	req, err := c.createAPIRequest(ctx, endpoint)
-	if err != nil {
-		return RepositoryInfo{}, err
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return RepositoryInfo{}, fmt.Errorf("failed to request GitHub API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return RepositoryInfo{}, fmt.Errorf("repository not found")
-		}
-		return RepositoryInfo{}, fmt.Errorf("GitHub API return status code: %d for %s/%s",
-			resp.StatusCode, owner, name)
-	}
-
-	var repoInfo RepositoryInfo
-
-	if err := json.NewDecoder(resp.Body).Decode(&repoInfo); err != nil {
-		return RepositoryInfo{}, fmt.Errorf("failed to parse GitHub response: %w", err)
-	}
-
-	return repoInfo, nil
-}
-
-func (c *Client) HasReadme(ctx context.Context, owner string, name string) (bool, error) {
-	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/readme", owner, name)
-
-	req, err := c.createAPIRequest(ctx, endpoint)
-	if err != nil {
-		return false, err
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return false, fmt.Errorf("failed to request README: %w", err)
-	}
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case http.StatusOK:
-		return true, nil
-	case http.StatusNotFound:
-		return false, nil
-	default:
-		return false, fmt.Errorf("GitHub API returned code: %d for README of %s/%s",
-			resp.StatusCode, owner, name)
-	}
-}
-
-func (c *Client) GetOpenPullRequests(ctx context.Context, owner string, name string) (int, error) {
-	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls", owner, name)
-	total := 0
-
-	for page := 1; ; page++ {
-		reqURL := fmt.Sprintf("%s?state=open&per_page=100&page=%d", endpoint, page)
-
-		req, err := c.createAPIRequest(ctx, reqURL)
-		if err != nil {
-			return 0, fmt.Errorf("failed to request GitHub API: %w", err)
-		}
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			return 0, fmt.Errorf("failed to request pull requests: %w", err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			return 0, fmt.Errorf("GitHub API return status code: %d for pull requests of %s/%s",
-				resp.StatusCode, owner, name)
-		}
-
-		var pullRequests []struct{}
-		err = json.NewDecoder(resp.Body).Decode(&pullRequests)
-		resp.Body.Close()
-		if err != nil {
-			return 0, fmt.Errorf("failed to decode pull requests response: %w", err)
-		}
-		total += len(pullRequests)
-		if len(pullRequests) < 100 {
-			break
-		}
-	}
-	return total, nil
-}
-
-func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name string) (int, error) {
-	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits", owner, name)
-
-	since := time.Now().UTC().AddDate(0, 0, -7).Format(time.RFC3339)
-	total := 0
-
-	for page := 1; ; page++ {
-		reqUrl := fmt.Sprintf("%s?since=%s&per_page=100&page=%d", endpoint, url.QueryEscape(since), page)
-
-		req, err := c.createAPIRequest(ctx, reqUrl)
-		if err != nil {
-			return 0, fmt.Errorf("failed to request commits last 7 days: %w", err)
-		}
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			return 0, fmt.Errorf("failed to request commits: %w", err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			return 0, fmt.Errorf("GitHub API return status code: %d for commits of %s of %s",
-				resp.StatusCode, owner, name)
-		}
-
-		var commits []struct{}
-		err = json.NewDecoder(resp.Body).Decode(&commits)
-		resp.Body.Close()
-		if err != nil {
-			return 0, fmt.Errorf("failed to decode commits response: %w", err)
-		}
-		total += len(commits)
-		if len(commits) < 100 {
-			break
-		}
-	}
-	return total, nil
-}
-
-func (c *Client) GetLastCommitAt(ctx context.Context, owner string, name string) (*time.Time, error) {
-	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits?per_page=1", owner, name)
-
-	req, err := c.createAPIRequest(ctx, endpoint)
-	if err != nil {
-		return nil, fmt.Errorf("failed to request last commit at: %w", err)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to request last commit: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GitHub API return status code: %d for last commit of %s of %s",
-			resp.StatusCode, owner, name)
-	}
-
-	var commits []struct {
-		Commit struct {
-			Author struct {
-				Date time.Time `json:"date"`
-			} `json:"author"`
-		} `json:"commit"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&commits); err != nil {
-		return nil, fmt.Errorf("failed to decode last commit response: %w", err)
-	}
-
-	if len(commits) == 0 {
-		return nil, nil
-	}
-
-	lastCommitAt := commits[0].Commit.Author.Date
-	return &lastCommitAt, nil
 }
