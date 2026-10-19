@@ -7,19 +7,31 @@ import (
 	"github-watcher/internal/github"
 	"github-watcher/internal/models"
 	"github-watcher/internal/storage"
+	"github-watcher/internal/tracker"
 	"strings"
 )
 
 type Service struct {
 	githubClient *github.Client
 	storage      storage.Storage
+	tracker      *tracker.Tracker
 }
 
-func NewService(githubClient *github.Client, storage storage.Storage) *Service {
+type CollectResult struct {
+	SuccessCount int
+	FailedCount  int
+}
+
+func NewService(githubClient *github.Client, storage storage.Storage, tracker *tracker.Tracker) *Service {
 	return &Service{
 		githubClient: githubClient,
 		storage:      storage,
+		tracker:      tracker,
 	}
+}
+
+func (s *Service) Collect(ctx context.Context) (CollectResult, error) {
+
 }
 
 func (s *Service) Add(ctx context.Context, fullName string) (models.Repository, error) {
