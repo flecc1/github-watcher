@@ -27,6 +27,12 @@ type CollectJobResult struct {
 	err error
 }
 
+type RepositoryStats struct {
+	Repository models.Repository
+	Snapshot   *models.RepositorySnapshot
+	Err        error
+}
+
 func NewService(githubClient *github.Client, storage storage.Storage, tracker *tracker.Tracker) *Service {
 	return &Service{
 		githubClient: githubClient,
@@ -105,6 +111,31 @@ func (s *Service) Collect(ctx context.Context) (CollectResult, error) {
 		return result, fmt.Errorf("collecting canceled: %w", err)
 	}
 
+	return result, nil
+}
+
+func (s *Service) Stats(ctx context.Context) ([]RepositoryStats, error) {
+	repos, err := s.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list repositories: %w", err)
+	}
+
+	result := make([]RepositoryStats, 0, len(repos))
+
+	for _, repo := range repos {
+		item := RepositoryStats{
+			Repository: repo,
+		}
+
+		snapshots, err := s.storage.ListSnapshots(ctx, repo.ID)
+		if err != nil {
+			item.Err = fmt.Errorf("failed to get snapshots for repository %s: %w", repo.FullName, err)
+		} else if len(snapshots) > 0 {
+			item.Snapshot = &snapshots[0]
+		}
+
+		result = append(result, item)
+	}
 	return result, nil
 }
 
