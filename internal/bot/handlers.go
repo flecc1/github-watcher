@@ -8,7 +8,6 @@ import (
 	"github-watcher/internal/models"
 	"github-watcher/internal/service"
 	"github-watcher/internal/storage"
-	"github-watcher/internal/tracker"
 	"log/slog"
 	"strings"
 	"time"
@@ -19,20 +18,16 @@ import (
 type Handler struct {
 	bot     *tgbotapi.BotAPI
 	service *service.Service
-	tracker *tracker.Tracker
-	storage storage.Storage
 }
 type CollectResult struct {
 	Repository models.Repository
 	err        error
 }
 
-func NewHandler(bot *tgbotapi.BotAPI, repositoryService *service.Service, tracker *tracker.Tracker, storage storage.Storage) *Handler {
+func NewHandler(bot *tgbotapi.BotAPI, repositoryService *service.Service) *Handler {
 	return &Handler{
 		bot:     bot,
 		service: repositoryService,
-		tracker: tracker,
-		storage: storage,
 	}
 }
 
@@ -177,29 +172,34 @@ func (h *Handler) collectHandler(ctx context.Context) (string, error) {
 }
 
 func (h *Handler) statsHandler(ctx context.Context) (string, error) {
-	repos, err := h.service.List(ctx)
+	stats, err := h.service.Stats(ctx)
 	if err != nil {
-		return "", fmt.Errorf("ошибка получения данных о репозиториях %w", err)
+		return "", fmt.Errorf("ошибка получения статистики репозиториев: %w", err)
 	}
-	if len(repos) == 0 {
+
+	if len(stats) == 0 {
 		return "Список отслеживаемых репозиториев пуст. Добавь первый: /add flecc1/URL-Shortener", nil
 	}
 
 	var response strings.Builder
 
-	for _, repo := range repos {
-		reposSnapshots, err := h.storage.ListSnapshots(ctx, repo.ID)
-		if err != nil {
-			slog.Error("error getting repositories snapshots", "repository", repo.FullName,
-				logger.Err(err))
-			fmt.Fprintf(&response, "не удалось получить снимки репозитория %s.\n", repo.FullName)
+	for _, stat := range stats {
+		if stat.Err != nil {
+			slog.Error("error getting repository snapshots", "repository", stat.Repository.FullName,
+				logger.Err(stat.Err))
+			fmt.Fprintf(&response, "Не удалось получить снимки репозитория %s.\n", stat.Repository.FullName)
 			continue
 		}
-		if len(reposSnapshots) == 0 {
-			fmt.Fprintf(&response, "репозиторий %s не имеет снимков\n", repo.FullName)
-		} else {
-			reposSnapshot := reposSnapshots[0]
-			fmt.Fprintf(&response, "📦 %s\n"+
+
+		if stat.Snapshot == nil {
+			fmt.Fprintf(&response, "Репозиторий %s не имеет снимков.\n", stat.Repository.FullName)
+			continue
+		}
+
+		snapshot := stat.Snapshot
+
+		fmt.Fprintf(&response,
+			"📦 %s\n"+
 				"⭐ Stars: %d\n"+
 				"🍴 Forks: %d\n"+
 				"🐛 Open issues: %d\n"+
@@ -207,11 +207,18 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 				"💻 Commits за 7 дней: %d\n"+
 				"📄 README: %t\n"+
 				"🕒 Последний сбор: %s\n"+
-				"━━━━━━━━━━━━━━━━━━━━\n", repo.FullName, reposSnapshot.Stars, reposSnapshot.Forks,
-				reposSnapshot.OpenIssues, reposSnapshot.OpenPullRequests, reposSnapshot.CommitsLast7Days,
-				reposSnapshot.HasReadme, reposSnapshot.CollectedAt)
-		}
+				"━━━━━━━━━━━━━━━━━━━━\n",
+			stat.Repository.FullName,
+			snapshot.Stars,
+			snapshot.Forks,
+			snapshot.OpenIssues,
+			snapshot.OpenPullRequests,
+			snapshot.CommitsLast7Days,
+			snapshot.HasReadme,
+			snapshot.CollectedAt,
+		)
 	}
+
 	return response.String(), nil
 }
 
