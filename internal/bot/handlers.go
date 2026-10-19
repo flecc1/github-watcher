@@ -11,17 +11,16 @@ import (
 	"github-watcher/internal/tracker"
 	"log/slog"
 	"strings"
-	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type Handler struct {
-	bot               *tgbotapi.BotAPI
-	repositoryService *service.Service
-	tracker           *tracker.Tracker
-	storage           storage.Storage
+	bot     *tgbotapi.BotAPI
+	service *service.Service
+	tracker *tracker.Tracker
+	storage storage.Storage
 }
 type CollectResult struct {
 	Repository models.Repository
@@ -30,10 +29,10 @@ type CollectResult struct {
 
 func NewHandler(bot *tgbotapi.BotAPI, repositoryService *service.Service, tracker *tracker.Tracker, storage storage.Storage) *Handler {
 	return &Handler{
-		bot:               bot,
-		repositoryService: repositoryService,
-		tracker:           tracker,
-		storage:           storage,
+		bot:     bot,
+		service: repositoryService,
+		tracker: tracker,
+		storage: storage,
 	}
 }
 
@@ -120,7 +119,7 @@ func (h *Handler) handleAdd(ctx context.Context, fullName string) (string, error
 	if strings.TrimSpace(fullName) == "" {
 		return "Укажи репозиторий в формате owner/repo.\nПример: /add golang/go", nil
 	}
-	repo, err := h.repositoryService.Add(ctx, fullName)
+	repo, err := h.service.Add(ctx, fullName)
 	if err != nil {
 		return "", fmt.Errorf("failed to add repository: %w", err)
 	}
@@ -132,14 +131,14 @@ func (h *Handler) handleDelete(ctx context.Context, fullName string) (string, er
 		return "Укажи удаляемый репозиторий в формате owner/repo.\nПример: /delete golang/go", errors.New("Укажи удаляемый репозиторий в формате owner/repo.\nПример: /delete golang/go")
 	}
 
-	if err := h.repositoryService.Delete(ctx, fullName); err != nil {
+	if err := h.service.Delete(ctx, fullName); err != nil {
 		return "ошибка удаления репозитория", fmt.Errorf("failed to delete repository: %w", err)
 	}
 	return fmt.Sprintf("репозиторий %s успешно удален", fullName), nil
 }
 
 func (h *Handler) handleList(ctx context.Context) (string, error) {
-	repos, err := h.repositoryService.List(ctx)
+	repos, err := h.service.List(ctx)
 	if err != nil {
 		return "", fmt.Errorf("не удалось получить список репозиториев: %w", err)
 	}
@@ -158,86 +157,27 @@ func (h *Handler) handleList(ctx context.Context) (string, error) {
 }
 
 func (h *Handler) collectHandler(ctx context.Context) (string, error) {
-	jobs := make(chan models.Repository)
-	results := make(chan CollectResult)
-
-	wg := &sync.WaitGroup{}
-
-	correctCollectCount := 0
-	badCollectCount := 0
-	workers := 5
-	repos, err := h.repositoryService.List(ctx)
+	collectResult, err := h.service.Collect(ctx)
 	if err != nil {
-		return "", fmt.Errorf("не получилось получить список репозиториев %w", err)
-	}
-	if len(repos) == 0 {
-		return "список репозиториев пуст добавьте например flecc1/URL-Shortener", nil
+		return "", fmt.Errorf("failed to collect repositories: %w", err)
 	}
 
-	go func() {
-		defer close(jobs)
-		for _, repo := range repos {
-			select {
-			case jobs <- repo:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	for range workers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for {
-				select {
-				case job, ok := <-jobs:
-					if !ok {
-						return
-					}
-
-					err := h.tracker.TrackRepository(ctx, job)
-
-					collectResult := CollectResult{
-						Repository: job,
-						err:        err,
-					}
-
-					select {
-					case results <- collectResult:
-					case <-ctx.Done():
-						return
-					}
-				case <-ctx.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	for result := range results {
-		if result.err != nil {
-			badCollectCount++
-		} else {
-			correctCollectCount++
-		}
-	}
-	if correctCollectCount == 0 {
+	switch {
+	case collectResult.SuccessCount == 0 && collectResult.FailedCount == 0:
+		return "Список репозиториев пуст. Добавь репозиторий через /add owner/repo.", nil
+	case collectResult.SuccessCount == 0:
 		return "Сбор статистики завершился с ошибкой для всех репозиториев.", nil
+	case collectResult.FailedCount == 0:
+		return fmt.Sprintf("Статистика всех репозиториев собрана успешно: %d.", collectResult.SuccessCount), nil
+	default:
+		return fmt.Sprintf("Сбор завершён. Успешно: %d, с ошибками: %d.", collectResult.SuccessCount,
+			collectResult.FailedCount,
+		), nil
 	}
-	if badCollectCount == 0 {
-		return fmt.Sprintf("Статистика всех репозиториев собрана успешно: %d.", correctCollectCount), nil
-	}
-	return fmt.Sprintf("Сбор завершён. Успешно: %d, с ошибками: %d.", correctCollectCount, badCollectCount), nil
 }
 
 func (h *Handler) statsHandler(ctx context.Context) (string, error) {
-	repos, err := h.repositoryService.List(ctx)
+	repos, err := h.service.List(ctx)
 	if err != nil {
 		return "", fmt.Errorf("ошибка получения данных о репозиториях %w", err)
 	}
