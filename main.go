@@ -50,15 +50,16 @@ func main() {
 
 	store := postgres.NewStore(db)
 	githubClient := github.NewClient()
+	snapshotsTracker := tracker.NewTracker(githubClient, store)
+	repositoryService := service.NewService(githubClient, store, snapshotsTracker)
 
-	repositoryService := service.NewService(githubClient, store)
 	botAPI, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		slog.Error("Failed to create bot api", logger.Err(err))
 		return
 	}
-	snapshotsTracker := tracker.NewTracker(githubClient, store)
-	handler := bot.NewHandler(botAPI, repositoryService, snapshotsTracker, store)
+
+	handler := bot.NewHandler(botAPI, repositoryService)
 	slog.Info("Bot authorized", "username", botAPI.Self.UserName)
 
 	commands := []tgbotapi.BotCommand{
@@ -93,6 +94,7 @@ func main() {
 	}
 
 	config := tgbotapi.NewSetMyCommands(commands...)
+
 	_, err = botAPI.Request(config)
 	if err != nil {
 		slog.Error("Failed to register bot commands", logger.Err(err))

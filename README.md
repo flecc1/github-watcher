@@ -39,13 +39,16 @@ Built with Go, the GitHub REST API, and PostgreSQL, the application collects rep
 │   ├── bot
 │   │   └── handlers.go
 │   ├── github
-│   │   └── client.go
+│   │   ├── client.go
+│   │   ├── commits.go
+│   │   ├── openPullRequests.go
+│   │   └── repositories.go
 │   ├── logger
 │   │   └── logger.go
 │   ├── postgres
 │   │   ├── postgres.go
 │   │   └── repositories.go
-│   ├── repository
+│   ├── service
 │   │   └── service.go
 │   ├── storage
 │   │   └── Storage.go
@@ -63,7 +66,7 @@ The application separates external API access, business logic, persistence, and 
 
 - `internal/bot` — processes Telegram commands.
 - `internal/github` — encapsulates GitHub API requests.
-- `internal/repository` — handles repository management and validation.
+- `internal/service` — handles repository management and validation.
 - `internal/tracker` — collects metrics and saves snapshots.
 - `internal/storage` — defines the persistence contract.
 - `internal/postgres` — implements persistence using PostgreSQL.
