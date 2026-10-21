@@ -36,30 +36,30 @@ Built with Go, the GitHub REST API, and PostgreSQL, the application collects rep
 ├── go.mod
 ├── go.sum
 ├── internal
-│   ├── bot
-│   │   └── handlers.go
-│   ├── github
-│   │   ├── client.go
-│   │   ├── commits.go
-│   │   ├── openPullRequests.go
-│   │   └── repositories.go
-│   ├── logger
-│   │   └── logger.go
-│   ├── postgres
-│   │   ├── postgres.go
-│   │   └── repositories.go
-│   ├── service
-│   │   └── service.go
-│   ├── storage
-│   │   └── Storage.go
-│   └── tracker
-│       └── tracker.go
+│   ├── bot
+│   │   └── handlers.go
+│   ├── github
+│   │   ├── client.go
+│   │   ├── commits.go
+│   │   ├── openPullRequests.go
+│   │   └── repositories.go
+│   ├── logger
+│   │   └── logger.go
+│   ├── models
+│   │   ├── repository.go
+│   │   └── repositorySnapshot.go
+│   ├── postgres
+│   │   ├── postgres.go
+│   │   └── repositories.go
+│   ├── service
+│   │   └── service.go
+│   ├── storage
+│   │   └── storage.go
+│   └── tracker
+│       └── tracker.go
 ├── main.go
-├── migrations
-│   └── scheme.sql
-└── models
-    ├── Repository.go
-    └── RepositorySnapshot.go
+└── migrations
+    └── scheme.sql
 ```
 
 The application separates external API access, business logic, persistence, and user interaction.
