@@ -48,13 +48,13 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute GitHub API request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read response body from GitHub API: %w", err)
 	}
 	if resp.StatusCode == http.StatusOK {
 		c.cache.Set(cache.URL(stringReq), respBody, resp.StatusCode)
