@@ -19,7 +19,7 @@ func (c *Client) GetOpenPullRequests(ctx context.Context, owner string, name str
 			return 0, fmt.Errorf("failed to request GitHub API: %w", err)
 		}
 
-		resp, err := c.httpClient.Do(req)
+		resp, err := c.doRequest(req)
 		if err != nil {
 			return 0, fmt.Errorf("failed to request pull requests: %w", err)
 		}

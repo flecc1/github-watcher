@@ -56,7 +56,7 @@ func (c *Client) HasReadme(ctx context.Context, owner string, name string) (bool
 		return false, err
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.doRequest(req)
 	if err != nil {
 		return false, fmt.Errorf("failed to request README: %w", err)
 	}

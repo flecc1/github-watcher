@@ -56,7 +56,7 @@ func (c *Client) GetLastCommitAt(ctx context.Context, owner string, name string)
 		return nil, fmt.Errorf("failed to request last commit at: %w", err)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.doRequest(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request last commit: %w", err)
 	}
