@@ -25,7 +25,7 @@ func (c *Client) GetRepository(ctx context.Context, owner string, name string) (
 		return RepositoryInfo{}, err
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.doRequest(req)
 	if err != nil {
 		return RepositoryInfo{}, fmt.Errorf("failed to request GitHub API: %w", err)
 	}
