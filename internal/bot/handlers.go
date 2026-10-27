@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github-watcher/internal/logger"
-	"github-watcher/internal/models"
 	"github-watcher/internal/service"
 	"github-watcher/internal/storage"
 	"log/slog"
@@ -18,10 +17,6 @@ import (
 type Handler struct {
 	bot     *tgbotapi.BotAPI
 	service *service.Service
-}
-type CollectResult struct {
-	Repository models.Repository
-	err        error
 }
 
 func NewHandler(bot *tgbotapi.BotAPI, repositoryService *service.Service) *Handler {
@@ -51,6 +46,8 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 
 	var err error
 	var response string
+	responseSent := false
+
 	fullName := update.Message.CommandArguments()
 	switch update.Message.Command() {
 	case "help":
@@ -79,11 +76,32 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		response = startMessage()
 	case "collect":
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		response, err = h.collectHandler(ctx)
 		defer cancel()
+		text := "⏳ Собираю статистику репозиториев. Это может занять некоторое время…"
+		message := tgbotapi.NewMessage(update.Message.Chat.ID, text)
+
+		messageSent := false
+		timeMessage, err := h.bot.Send(message)
+		if err != nil {
+			slog.Error("error sending message", logger.Err(err))
+		} else {
+			messageSent = true
+		}
+
+		response, err = h.collectHandler(ctx)
 		if err != nil {
 			slog.Error("error handling collect command", logger.Err(err))
 			response = fmt.Sprintf("не удалось выполнить команду collect. Попробуйте позже. Error: %s", err)
+		}
+
+		if messageSent {
+			newMessage := tgbotapi.NewEditMessageText(timeMessage.Chat.ID, timeMessage.MessageID, response)
+			_, err = h.bot.Send(newMessage)
+			if err != nil {
+				slog.Error("error sending message", logger.Err(err))
+			} else {
+				responseSent = true
+			}
 		}
 	case "stats":
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -104,9 +122,12 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 	default:
 		response = "Неизвестная команда. Используй /help."
 	}
-	message := tgbotapi.NewMessage(update.Message.Chat.ID, response)
-	if _, err := h.bot.Send(message); err != nil {
-		slog.Error("error sending message", logger.Err(err))
+
+	if !responseSent {
+		message := tgbotapi.NewMessage(update.Message.Chat.ID, response)
+		if _, err := h.bot.Send(message); err != nil {
+			slog.Error("error sending message", logger.Err(err))
+		}
 	}
 }
 
