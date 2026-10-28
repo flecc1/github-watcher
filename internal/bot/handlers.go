@@ -228,6 +228,7 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 				"💻 Commits за 7 дней: %d\n"+
 				"📄 README: %t\n"+
 				"🕒 Последний сбор: %s\n"+
+				"🕒 Последний комит: %s\n"+
 				"━━━━━━━━━━━━━━━━━━━━\n",
 			stat.Repository.FullName,
 			snapshot.Stars,
@@ -237,6 +238,7 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 			snapshot.CommitsLast7Days,
 			snapshot.HasReadme,
 			snapshot.CollectedAt,
+			snapshot.LastCommitAt,
 		)
 	}
 
