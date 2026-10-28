@@ -134,27 +134,27 @@ func TestDeleteStorageError(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	storage := &FakeStorage{
+	fakeStorage := &FakeStorage{
 		listRepos: []models.Repository{
 			{Name: "go", FullName: "golang/go"},
-			{Name: "flecc1", FullName: "URL-Shortener"},
+			{Name: "flecc1", FullName: "flecc1/URL-Shortener"},
 		},
 	}
 
-	service := NewService(nil, storage, nil)
+	service := NewService(nil, fakeStorage, nil)
 
 	repo, err := service.List(context.Background())
 	if err != nil {
 		t.Fatalf("List() unexpected error = %v", err)
 	}
 
-	if len(repo) != len(storage.listRepos) {
-		t.Fatalf("List() returned repo length = %v, want %v", len(repo), len(storage.listRepos))
+	if len(repo) != len(fakeStorage.listRepos) {
+		t.Fatalf("List() returned repo length = %v, want %v", len(repo), len(fakeStorage.listRepos))
 	}
 
 	for i := range repo {
-		if repo[i].Name != storage.listRepos[i].Name || repo[i].FullName != storage.listRepos[i].FullName {
-			t.Errorf("List() returned repo = %v, want %v", repo, storage.listRepos)
+		if repo[i].Name != fakeStorage.listRepos[i].Name || repo[i].FullName != fakeStorage.listRepos[i].FullName {
+			t.Errorf("List() returned repo = %v, want %v", repo, fakeStorage.listRepos)
 		}
 	}
 
