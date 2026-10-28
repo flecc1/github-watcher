@@ -42,6 +42,8 @@ type FakeStorage struct {
 	deleteCalled bool
 	deleteName   string
 	deleteErr    error
+	listRepos    []models.Repository
+	listReposErr error
 }
 
 func (f *FakeStorage) DeleteRepository(ctx context.Context, fullName string) error {
@@ -55,7 +57,7 @@ func (f *FakeStorage) AddRepository(ctx context.Context, fullName string) (model
 }
 
 func (f *FakeStorage) ListRepositories(ctx context.Context) ([]models.Repository, error) {
-	return []models.Repository{}, f.deleteErr
+	return f.listRepos, f.listReposErr
 }
 
 func (f *FakeStorage) SaveSnapshot(ctx context.Context, snapshot models.RepositorySnapshot) error {
@@ -127,7 +129,51 @@ func TestDeleteStorageError(t *testing.T) {
 	}
 
 	if !errors.Is(err, storageErr) {
-		t.Errorf("Delete() error = %v, want wrapped error %v",
-			err, storageErr)
+		t.Errorf("Delete() error = %v, want wrapped error %v", err, storageErr)
+	}
+}
+
+func TestList(t *testing.T) {
+	storage := &FakeStorage{
+		listRepos: []models.Repository{
+			{Name: "go", FullName: "golang/go"},
+			{Name: "flecc1", FullName: "URL-Shortener"},
+		},
+	}
+
+	service := NewService(nil, storage, nil)
+
+	repo, err := service.List(context.Background())
+	if err != nil {
+		t.Fatalf("List() unexpected error = %v", err)
+	}
+
+	if len(repo) != len(storage.listRepos) {
+		t.Fatalf("List() returned repo length = %v, want %v", len(repo), len(storage.listRepos))
+	}
+
+	for i := range repo {
+		if repo[i].Name != storage.listRepos[i].Name || repo[i].FullName != storage.listRepos[i].FullName {
+			t.Errorf("List() returned repo = %v, want %v", repo, storage.listRepos)
+		}
+	}
+
+}
+
+func TestListStorageError(t *testing.T) {
+	storageErr := errors.New("database connection failed")
+
+	fakeStorage := &FakeStorage{
+		listReposErr: storageErr,
+	}
+
+	service := NewService(nil, fakeStorage, nil)
+	_, err := service.List(context.Background())
+	if err == nil {
+		t.Fatal("List() expected error, got nil")
+	}
+
+	if !errors.Is(err, storageErr) {
+		t.Errorf("List() error = %v, want %v", err, storageErr)
 	}
 }
