@@ -170,7 +170,7 @@ func (s *Service) Delete(ctx context.Context, fullName string) error {
 	err = s.storage.DeleteRepository(ctx, checkedName)
 	if err != nil {
 		if errors.Is(err, storage.ErrRepositoryNotFound) {
-			return fmt.Errorf("repository %s not found", checkedName)
+			return fmt.Errorf("repository %s not found: %w", checkedName, err)
 		}
 		return fmt.Errorf("failed to delete repository %s: %w", checkedName, err)
 	}
