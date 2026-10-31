@@ -44,6 +44,9 @@ type FakeStorage struct {
 	deleteErr    error
 	listRepos    []models.Repository
 	listReposErr error
+	addErr       error
+	snapshotErr  error
+	snapshotsErr error
 }
 
 func (f *FakeStorage) DeleteRepository(ctx context.Context, fullName string) error {
@@ -53,7 +56,7 @@ func (f *FakeStorage) DeleteRepository(ctx context.Context, fullName string) err
 }
 
 func (f *FakeStorage) AddRepository(ctx context.Context, fullName string) (models.Repository, error) {
-	return models.Repository{}, f.deleteErr
+	return models.Repository{}, f.addErr
 }
 
 func (f *FakeStorage) ListRepositories(ctx context.Context) ([]models.Repository, error) {
@@ -61,11 +64,11 @@ func (f *FakeStorage) ListRepositories(ctx context.Context) ([]models.Repository
 }
 
 func (f *FakeStorage) SaveSnapshot(ctx context.Context, snapshot models.RepositorySnapshot) error {
-	return nil
+	return f.snapshotErr
 }
 
 func (f *FakeStorage) ListSnapshots(ctx context.Context, repositoryID int) ([]models.RepositorySnapshot, error) {
-	return []models.RepositorySnapshot{}, f.deleteErr
+	return []models.RepositorySnapshot{}, f.snapshotsErr
 }
 
 func TestDelete(t *testing.T) {
