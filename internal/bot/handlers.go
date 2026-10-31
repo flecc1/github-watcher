@@ -57,12 +57,12 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		defer cancel()
 		response, err = h.handleAdd(ctx, fullName)
 		if err != nil {
-			if errors.Is(err, storage.ErrRepositoryAlreadyTracked) {
+			switch {
+			case errors.Is(err, storage.ErrRepositoryAlreadyTracked):
 				response = "Этот репозиторий уже отслеживается."
-			}
-			if errors.Is(err, service.ErrInvalidName) {
+			case errors.Is(err, service.ErrInvalidName):
 				response = "введите в формате owner/repo"
-			} else {
+			default:
 				slog.Error("error handling add command", logger.Err(err))
 				response = fmt.Sprintf("Не удалось выполнить команду add. Попробуйте позже Error: %s", err)
 			}
@@ -119,14 +119,15 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		defer cancel()
 		response, err = h.handleDelete(ctx, fullName)
 		if err != nil {
-			if errors.Is(err, storage.ErrRepositoryAlreadyTracked) {
+			switch {
+			case errors.Is(err, storage.ErrRepositoryNotFound):
 				response = "Этот репозиторий не отслеживается"
+			case errors.Is(err, service.ErrInvalidName):
+				response = "Введите в формате owner/repo пример: /delete golang/go"
+			default:
+				slog.Error("error handling delete command", logger.Err(err))
+				response = fmt.Sprintf("не удалось выполнить команду delete. Попробуйте позже. Error: %s", err)
 			}
-			if errors.Is(err, service.ErrInvalidName) {
-				response = "введите в формате owner/repo"
-			}
-			slog.Error("error handling delete command", logger.Err(err))
-			response = fmt.Sprintf("не удалось выполнить команду delete. Попробуйте позже. Error: %s", err)
 		}
 	default:
 		response = "Неизвестная команда. Используй /help."
