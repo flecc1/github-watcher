@@ -30,6 +30,9 @@ func TestParseName(t *testing.T) {
 			if err == nil && test.wantErr {
 				t.Errorf("parseName() error = %v, wantErr %v", err, test.wantErr)
 			}
+			if test.wantErr && err != nil && !errors.Is(err, ErrInvalidName) {
+				t.Errorf("parseName(%q) error = %v, want %v", test.input, err, ErrInvalidName)
+			}
 			if owner != test.wantOwner {
 				t.Errorf("parseName() error = %v, owner = %v, want %v", err, owner, test.wantOwner)
 			}
@@ -101,7 +104,9 @@ func TestDeleteInvalidName(t *testing.T) {
 	if err == nil {
 		t.Error("Delete() expected error, got nil")
 	}
-
+	if !errors.Is(err, ErrInvalidName) {
+		t.Errorf("Delete() unexpected error = %v, want %v", err, ErrInvalidName)
+	}
 	if fakeStorage.deleteCalled {
 		t.Error("Delete() called storage with invalid name")
 	}
