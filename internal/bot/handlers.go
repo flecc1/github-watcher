@@ -54,8 +54,8 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		response = helpMessage()
 	case "add":
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		response, err = h.handleAdd(ctx, fullName)
 		defer cancel()
+		response, err = h.handleAdd(ctx, fullName)
 		if err != nil {
 			if errors.Is(err, storage.ErrRepositoryAlreadyTracked) {
 				response = "Этот репозиторий уже отслеживается."
@@ -105,8 +105,8 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 		}
 	case "stats":
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		response, err = h.statsHandler(ctx)
 		defer cancel()
+		response, err = h.statsHandler(ctx)
 		if err != nil {
 			slog.Error("error handling stats command", logger.Err(err))
 			response = fmt.Sprintf("не удалось выполнить команду stats. Попробуйте позже. Error: %s", err)
@@ -144,7 +144,7 @@ func (h *Handler) handleAdd(ctx context.Context, fullName string) (string, error
 
 func (h *Handler) handleDelete(ctx context.Context, fullName string) (string, error) {
 	if strings.TrimSpace(fullName) == "" {
-		return "Укажи удаляемый репозиторий в формате owner/repo.\nПример: /delete golang/go", errors.New("Укажи удаляемый репозиторий в формате owner/repo.\nПример: /delete golang/go")
+		return "Укажи удаляемый репозиторий в формате owner/repo.\nПример: /delete golang/go", nil
 	}
 
 	if err := h.service.Delete(ctx, fullName); err != nil {
