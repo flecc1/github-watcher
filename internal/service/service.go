@@ -41,6 +41,8 @@ func NewService(githubClient *github.Client, storage storage.Storage, tracker *t
 	}
 }
 
+var ErrInvalidName = errors.New("invalid repository name use the format \"owner/repo\"")
+
 func (s *Service) Collect(ctx context.Context) (CollectResult, error) {
 	jobs := make(chan models.Repository)
 	results := make(chan CollectJobResult)
@@ -182,14 +184,14 @@ func parseName(fullName string) (string, string, error) {
 	parts := strings.Split(fullName, "/")
 
 	if len(parts) != 2 {
-		return "", "", errors.New("invalid repository name")
+		return "", "", ErrInvalidName
 	}
 
 	owner := strings.TrimSpace(parts[0])
 	name := strings.TrimSpace(parts[1])
 
 	if owner == "" || name == "" {
-		return "", "", errors.New("invalid repository name")
+		return "", "", ErrInvalidName
 	}
 
 	return owner, name, nil
