@@ -9,6 +9,9 @@ import (
 	"github-watcher/internal/tracker"
 	"log/slog"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	"github-watcher/internal/github"
@@ -101,12 +104,29 @@ func main() {
 	}
 	slog.Info("Bot commands registered")
 
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
 	u := tgbotapi.NewUpdate(0)
 
 	u.Timeout = 60
 	updates := botAPI.GetUpdatesChan(u)
 
-	for update := range updates {
-		handler.HandleUpdate(update)
-	}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		for update := range updates {
+			handler.HandleUpdate(update)
+		}
+	}()
+	<-ctx.Done()
+	slog.Info("Shutting down gracefully")
+
+	botAPI.StopReceivingUpdates()
+
+	wg.Wait()
+
+	slog.Info("Stop bot")
 }
