@@ -13,14 +13,16 @@ import (
 type Client struct {
 	httpClient *http.Client
 	cache      *cache.Cache
+	token      string
 }
 
-func NewClient() *Client {
+func NewClient(token string) *Client {
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
 		cache: cache.NewCache(60 * time.Second),
+		token: token,
 	}
 }
 
@@ -32,6 +34,9 @@ func (c *Client) createAPIRequest(ctx context.Context, endpoint string) (*http.R
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", "github-watcher-app")
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
 	return req, nil
 }
 

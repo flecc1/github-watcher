@@ -51,8 +51,10 @@ func main() {
 
 	slog.Info("Connected to database")
 
+	githubToken := os.Getenv("GITHUB_TOKEN")
+
 	store := postgres.NewStore(db)
-	githubClient := github.NewClient()
+	githubClient := github.NewClient(githubToken)
 	snapshotsTracker := tracker.NewTracker(githubClient, store)
 	repositoryService := service.NewService(githubClient, store, snapshotsTracker)
 
