@@ -1,0 +1,17 @@
+CREATE TABLE repository_snapshots (
+                                      id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                                      repository_id INT NOT NULL
+                                          REFERENCES repositories(id) ON DELETE CASCADE,
+
+                                      stars INT NOT NULL,
+                                      forks INT NOT NULL,
+                                      has_readme BOOLEAN NOT NULL,
+                                      open_issues INT NOT NULL,
+                                      open_pull_requests INT NOT NULL,
+                                      collected_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                      commits_last_7_days INT NOT NULL,
+                                      last_commit_at TIMESTAMP
+);
+
+CREATE INDEX repository_snapshots_repository_collected_idx
+    ON repository_snapshots (repository_id, collected_at DESC);
