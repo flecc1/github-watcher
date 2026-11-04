@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github-watcher/internal/github"
+	"github-watcher/internal/logger"
 	"github-watcher/internal/models"
 	"github-watcher/internal/storage"
 	"github-watcher/internal/tracker"
+	"log/slog"
 	"strings"
 	"sync"
 )
@@ -24,7 +26,8 @@ type CollectResult struct {
 }
 
 type CollectJobResult struct {
-	err error
+	err      error
+	repoName string
 }
 
 type RepositoryStats struct {
@@ -103,6 +106,8 @@ func (s *Service) Collect(ctx context.Context) (CollectResult, error) {
 
 	for jobResult := range results {
 		if jobResult.err != nil {
+			slog.Error("Failed to collect repository", "repository", jobResult.repoName,
+				logger.Err(jobResult.err))
 			result.FailedCount++
 		} else {
 			result.SuccessCount++
