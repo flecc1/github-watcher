@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -16,6 +17,8 @@ type RepositoryInfo struct {
 	HasIssues     bool   `json:"has_issues"`
 	DefaultBranch string `json:"default_branch"`
 }
+
+var ErrNotFound = errors.New("repository not found")
 
 func (c *Client) GetRepository(ctx context.Context, owner string, name string) (RepositoryInfo, error) {
 	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, name)
@@ -33,7 +36,7 @@ func (c *Client) GetRepository(ctx context.Context, owner string, name string) (
 
 	if resp.StatusCode != http.StatusOK {
 		if resp.StatusCode == http.StatusNotFound {
-			return RepositoryInfo{}, fmt.Errorf("repository not found")
+			return RepositoryInfo{}, ErrNotFound
 		}
 		return RepositoryInfo{}, fmt.Errorf("GitHub API return status code: %d for %s/%s",
 			resp.StatusCode, owner, name)
