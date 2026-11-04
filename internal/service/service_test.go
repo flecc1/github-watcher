@@ -60,7 +60,7 @@ func (f *FakeStorage) DeleteRepository(ctx context.Context, fullName string) err
 	return f.deleteErr
 }
 
-func (f *FakeStorage) AddRepository(ctx context.Context, fullName string) (models.Repository, error) {
+func (f *FakeStorage) AddRepository(ctx context.Context, owner, name string) (models.Repository, error) {
 	return models.Repository{}, f.addErr
 }
 

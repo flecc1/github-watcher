@@ -156,7 +156,12 @@ func (s *Service) Add(ctx context.Context, fullName string) (models.Repository, 
 		return models.Repository{}, fmt.Errorf("failed to fetch repository: %w", err)
 	}
 
-	repository, err := s.storage.AddRepository(ctx, repoInfo.FullName)
+	owner, repo, err = parseName(repoInfo.FullName)
+	if err != nil {
+		return models.Repository{}, err
+	}
+
+	repository, err := s.storage.AddRepository(ctx, owner, repo)
 	if err != nil {
 		return models.Repository{}, fmt.Errorf("failed to add repository to storage: %w", err)
 	}

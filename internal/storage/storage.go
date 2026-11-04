@@ -7,7 +7,7 @@ import (
 )
 
 type Storage interface {
-	AddRepository(ctx context.Context, fullName string) (models.Repository, error)
+	AddRepository(ctx context.Context, owner, name string) (models.Repository, error)
 	DeleteRepository(ctx context.Context, fullName string) error
 	ListRepositories(ctx context.Context) ([]models.Repository, error)
 	SaveSnapshot(ctx context.Context, snapshot models.RepositorySnapshot) error

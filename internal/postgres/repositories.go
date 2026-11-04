@@ -18,17 +18,8 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) AddRepository(ctx context.Context, fullName string) (models2.Repository, error) {
-	fullName = strings.TrimSpace(fullName)
-
-	parts := strings.Split(fullName, "/")
-	if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
-		return models2.Repository{}, fmt.Errorf("invalid repository name %s: expected owner/repository", fullName)
-	}
-
-	owner := strings.TrimSpace(parts[0])
-	name := strings.TrimSpace(parts[1])
-	fullName = fmt.Sprintf("%s/%s", owner, name)
+func (s *Store) AddRepository(ctx context.Context, owner, name string) (models2.Repository, error) {
+	fullName := fmt.Sprintf("%s/%s", owner, name)
 
 	query := `INSERT INTO repositories (owner, name, full_name) VALUES ($1, $2, $3)
 ON CONFLICT DO NOTHING RETURNING id, owner, full_name, name, added_at`
