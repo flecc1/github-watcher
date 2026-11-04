@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github-watcher/internal/github"
 	"github-watcher/internal/logger"
 	"github-watcher/internal/service"
 	"github-watcher/internal/storage"
@@ -61,7 +62,9 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 			case errors.Is(err, storage.ErrRepositoryAlreadyTracked):
 				response = "Этот репозиторий уже отслеживается."
 			case errors.Is(err, service.ErrInvalidName):
-				response = "введите в формате owner/repo"
+				response = "Введите в формате owner/repo пример golang/go"
+			case errors.Is(err, github.ErrNotFound):
+				response = "Репозиторий не найден на GitHub или он приватный"
 			default:
 				slog.Error("error handling add command", logger.Err(err))
 				response = fmt.Sprintf("Не удалось выполнить команду add. Попробуйте позже Error: %s", err)
