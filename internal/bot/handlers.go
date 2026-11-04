@@ -15,6 +15,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+const internalErrorMessage = "Не удалось выполнить команду. Попробуй позже."
+
 type Handler struct {
 	bot     *tgbotapi.BotAPI
 	service *service.Service
@@ -67,22 +69,24 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 				response = "Репозиторий не найден на GitHub или он приватный"
 			default:
 				slog.Error("error handling add command", logger.Err(err))
-				response = fmt.Sprintf("Не удалось выполнить команду add. Попробуйте позже Error: %s", err)
+				response = internalErrorMessage
 			}
 		}
 	case "list":
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
+
 		response, err = h.handleList(ctx)
 		if err != nil {
 			slog.Error("error handling list command", logger.Err(err))
-			response = fmt.Sprintf("Не удалось выполнить команду list. Попробуй позже. Error: %s", err)
+			response = internalErrorMessage
 		}
 	case "start":
 		response = startMessage()
 	case "collect":
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
+
 		text := "⏳ Собираю статистику репозиториев. Это может занять некоторое время…"
 		message := tgbotapi.NewMessage(update.Message.Chat.ID, text)
 
@@ -97,7 +101,7 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 		response, err = h.collectHandler(ctx)
 		if err != nil {
 			slog.Error("error handling collect command", logger.Err(err))
-			response = fmt.Sprintf("не удалось выполнить команду collect. Попробуйте позже. Error: %s", err)
+			response = internalErrorMessage
 		}
 
 		if messageSent {
@@ -112,10 +116,11 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	case "stats":
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
+
 		response, err = h.statsHandler(ctx)
 		if err != nil {
 			slog.Error("error handling stats command", logger.Err(err))
-			response = fmt.Sprintf("не удалось выполнить команду stats. Попробуйте позже. Error: %s", err)
+			response = internalErrorMessage
 		}
 	case "delete":
 		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -129,7 +134,7 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 				response = "Введите в формате owner/repo пример: /delete golang/go"
 			default:
 				slog.Error("error handling delete command", logger.Err(err))
-				response = fmt.Sprintf("не удалось выполнить команду delete. Попробуйте позже. Error: %s", err)
+				response = internalErrorMessage
 			}
 		}
 	default:
