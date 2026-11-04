@@ -18,7 +18,7 @@ type RepositoryInfo struct {
 	DefaultBranch string `json:"default_branch"`
 }
 
-var ErrNotFound = errors.New("repository not found")
+var ErrNotFound = errors.New("repository not found on github")
 
 func (c *Client) GetRepository(ctx context.Context, owner string, name string) (RepositoryInfo, error) {
 	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, name)
