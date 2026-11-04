@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -106,29 +105,52 @@ func main() {
 	}
 	slog.Info("Bot commands registered")
 
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
+	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	workCtx, cancelWork := context.WithCancel(context.Background())
+	defer cancelWork()
 
 	u := tgbotapi.NewUpdate(0)
 
 	u.Timeout = 60
 	updates := botAPI.GetUpdatesChan(u)
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
+	done := make(chan struct{})
 
 	go func() {
-		defer wg.Done()
-		for update := range updates {
-			handler.HandleUpdate(update)
+		defer close(done)
+		for {
+			select {
+			case <-signalCtx.Done():
+				return
+			case update, ok := <-updates:
+				if !ok {
+					return
+				}
+				handler.HandleUpdate(workCtx, update)
+			}
 		}
 	}()
-	<-ctx.Done()
+
+	<-signalCtx.Done()
+	stop()
 	slog.Info("Shutting down gracefully")
 
 	botAPI.StopReceivingUpdates()
 
-	wg.Wait()
+	select {
+	case <-done:
+	case <-time.After(20 * time.Second):
+		slog.Warn("Shutdown timeout reached, cancelling active command")
+		cancelWork()
+
+		select {
+		case <-done:
+		case <-time.After(3 * time.Second):
+			slog.Warn("Active command did not stop in time")
+		}
+	}
 
 	slog.Info("Stop bot")
 }

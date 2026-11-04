@@ -24,6 +24,7 @@ services:
         condition: service_healthy
   bot:
     build: .
+    stop_grace_period: 30s
     env_file:
       - .env
     depends_on:
