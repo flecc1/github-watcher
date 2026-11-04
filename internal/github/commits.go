@@ -30,6 +30,10 @@ func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name str
 
 		if resp.StatusCode != http.StatusOK {
 			resp.Body.Close()
+			if resp.StatusCode == http.StatusConflict {
+				return 0, nil
+			}
+
 			return 0, fmt.Errorf("GitHub API return status code: %d for commits of %s of %s",
 				resp.StatusCode, owner, name)
 		}
@@ -63,6 +67,10 @@ func (c *Client) GetLastCommitAt(ctx context.Context, owner string, name string)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusConflict {
+			return nil, nil
+		}
+
 		return nil, fmt.Errorf("GitHub API return status code: %d for last commit of %s of %s",
 			resp.StatusCode, owner, name)
 	}
