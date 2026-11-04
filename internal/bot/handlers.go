@@ -64,7 +64,7 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 			case errors.Is(err, storage.ErrRepositoryAlreadyTracked):
 				response = "Этот репозиторий уже отслеживается."
 			case errors.Is(err, service.ErrInvalidName):
-				response = "Введите в формате owner/repo пример golang/go"
+				response = "Введите в формате owner/repo. Пример golang/go"
 			case errors.Is(err, github.ErrNotFound):
 				response = "Репозиторий не найден на GitHub или он приватный"
 			default:
@@ -131,7 +131,7 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 			case errors.Is(err, storage.ErrRepositoryNotFound):
 				response = "Этот репозиторий не отслеживается"
 			case errors.Is(err, service.ErrInvalidName):
-				response = "Введите в формате owner/repo пример: /delete golang/go"
+				response = "Введите в формате owner/repo. Пример: /delete golang/go"
 			default:
 				slog.Error("error handling delete command", logger.Err(err))
 				response = internalErrorMessage
@@ -217,7 +217,7 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 	}
 
 	if len(stats) == 0 {
-		return "Список отслеживаемых репозиториев пуст. Добавь первый: /add flecc1/URL-Shortener", nil
+		return "Список отслеживаемых репозиториев пуст. Добавь первый: /add golang/go", nil
 	}
 
 	var response strings.Builder
@@ -246,7 +246,7 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 				"💻 Commits за 7 дней: %d\n"+
 				"📄 README: %t\n"+
 				"🕒 Последний сбор: %s\n"+
-				"🕒 Последний комит: %s\n"+
+				"🕒 Последний коммит: %s\n"+
 				"━━━━━━━━━━━━━━━━━━━━\n",
 			stat.Repository.FullName,
 			snapshot.Stars,
