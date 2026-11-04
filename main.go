@@ -102,8 +102,9 @@ func main() {
 	_, err = botAPI.Request(config)
 	if err != nil {
 		slog.Error("Failed to register bot commands", logger.Err(err))
+	} else {
+		slog.Info("Bot commands registered")
 	}
-	slog.Info("Bot commands registered")
 
 	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
