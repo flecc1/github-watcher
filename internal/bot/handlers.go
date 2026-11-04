@@ -255,8 +255,8 @@ func (h *Handler) statsHandler(ctx context.Context) (string, error) {
 			snapshot.OpenPullRequests,
 			snapshot.CommitsLast7Days,
 			snapshot.HasReadme,
-			snapshot.CollectedAt,
-			snapshot.LastCommitAt,
+			formatTime(snapshot.CollectedAt),
+			formatLastCommit(snapshot.LastCommitAt),
 		)
 	}
 
@@ -285,4 +285,15 @@ func helpMessage() string {
 		"/list — показать отслеживаемые репозитории\n" +
 		"/collect — собрать и сохранить свежую статистику\n" +
 		"/stats — показать последнюю сохранённую статистику"
+}
+
+func formatTime(t time.Time) string {
+	return t.UTC().Format("02.01.2006 15:04:05 UTC")
+}
+
+func formatLastCommit(t *time.Time) string {
+	if t == nil {
+		return "нет коммитов"
+	}
+	return formatTime(*t)
 }
