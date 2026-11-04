@@ -26,7 +26,7 @@ func NewHandler(bot *tgbotapi.BotAPI, repositoryService *service.Service) *Handl
 	}
 }
 
-func (h *Handler) HandleUpdate(update tgbotapi.Update) {
+func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if update.Message == nil {
 		return
 	}
@@ -53,7 +53,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 	case "help":
 		response = helpMessage()
 	case "add":
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
 		response, err = h.handleAdd(ctx, fullName)
 		if err != nil {
@@ -68,7 +68,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 			}
 		}
 	case "list":
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		response, err = h.handleList(ctx)
 		if err != nil {
@@ -78,7 +78,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 	case "start":
 		response = startMessage()
 	case "collect":
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 		text := "⏳ Собираю статистику репозиториев. Это может занять некоторое время…"
 		message := tgbotapi.NewMessage(update.Message.Chat.ID, text)
@@ -107,7 +107,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 			}
 		}
 	case "stats":
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		response, err = h.statsHandler(ctx)
 		if err != nil {
@@ -115,7 +115,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 			response = fmt.Sprintf("не удалось выполнить команду stats. Попробуйте позже. Error: %s", err)
 		}
 	case "delete":
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 		response, err = h.handleDelete(ctx, fullName)
 		if err != nil {
