@@ -117,10 +117,18 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		response, err = h.statsHandler(ctx)
+		messages, err := h.statsHandler(ctx)
 		if err != nil {
 			slog.Error("error handling stats command", logger.Err(err))
 			response = internalErrorMessage
+		} else {
+			for _, message := range messages {
+				tgMessage := tgbotapi.NewMessage(update.Message.Chat.ID, message)
+				if _, err := h.bot.Send(tgMessage); err != nil {
+					slog.Error("error sending message", logger.Err(err))
+				}
+			}
+			responseSent = true
 		}
 	case "delete":
 		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -210,28 +218,26 @@ func (h *Handler) collectHandler(ctx context.Context) (string, error) {
 	}
 }
 
-func (h *Handler) statsHandler(ctx context.Context) (string, error) {
+func (h *Handler) statsHandler(ctx context.Context) ([]string, error) {
 	stats, err := h.service.Stats(ctx)
 	if err != nil {
-		return "", fmt.Errorf("ошибка получения статистики репозиториев: %w", err)
+		return nil, fmt.Errorf("ошибка получения статистики репозиториев: %w", err)
 	}
 
 	if len(stats) == 0 {
-		return "Список отслеживаемых репозиториев пуст. Добавь первый: /add golang/go", nil
+		return []string{"Список отслеживаемых репозиториев пуст. Добавь первый: /add golang/go"}, nil
 	}
 
-	var response strings.Builder
-
+	parts := make([]string, 0, len(stats))
 	for _, stat := range stats {
 		if stat.Err != nil {
 			slog.Error("error getting repository snapshots", "repository", stat.Repository.FullName,
 				logger.Err(stat.Err))
 		}
-
-		response.WriteString(formatRepositoryStats(stat))
+		parts = append(parts, formatRepositoryStats(stat))
 	}
 
-	return response.String(), nil
+	return splitMessage(parts, maxMessageLength), nil
 }
 
 func startMessage() string {

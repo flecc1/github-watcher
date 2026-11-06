@@ -3,8 +3,33 @@ package bot
 import (
 	"fmt"
 	"github-watcher/internal/service"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
+
+const maxMessageLength = 4000
+
+func splitMessage(parts []string, limit int) []string {
+	messages := make([]string, 0, len(parts))
+	current := strings.Builder{}
+
+	currentRunes := 0
+	for _, part := range parts {
+		partRunes := utf8.RuneCountInString(part)
+		if currentRunes > 0 && currentRunes+partRunes > limit {
+			messages = append(messages, current.String())
+			current.Reset()
+			currentRunes = 0
+		}
+		current.WriteString(part)
+		currentRunes += partRunes
+	}
+	if current.Len() > 0 {
+		messages = append(messages, current.String())
+	}
+	return messages
+}
 
 func formatTime(t time.Time) string {
 	return t.UTC().Format("02.01.2006 15:04:05 UTC")
