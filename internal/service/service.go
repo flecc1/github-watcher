@@ -86,7 +86,7 @@ func (s *Service) Collect(ctx context.Context) (CollectResult, error) {
 					err := s.tracker.TrackRepository(ctx, job)
 
 					select {
-					case results <- CollectJobResult{err: err}:
+					case results <- CollectJobResult{err: err, repoName: job.Name}:
 					case <-ctx.Done():
 						return
 					}
