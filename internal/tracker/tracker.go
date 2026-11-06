@@ -10,10 +10,10 @@ import (
 
 type Tracker struct {
 	githubClient *github.Client
-	storage      storage.Storage
+	storage      storage.SnapshotStorage
 }
 
-func NewTracker(githubClient *github.Client, storage storage.Storage) *Tracker {
+func NewTracker(githubClient *github.Client, storage storage.SnapshotStorage) *Tracker {
 	return &Tracker{
 		githubClient: githubClient,
 		storage:      storage,
