@@ -3,10 +3,14 @@ package github
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github-watcher/internal/cache"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -67,4 +71,61 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 
 	resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
 	return resp, nil
+}
+
+func lastPage(linkHeader string) (int, bool) {
+	parts := strings.Split(linkHeader, ",")
+
+	for _, part := range parts {
+		if strings.Contains(part, "rel=\"last\"") {
+			if idx := strings.Index(part, ";"); idx != -1 {
+				part = part[:idx]
+			}
+			part = strings.Trim(part, " <>")
+			parsed, err := url.Parse(part)
+			if err != nil {
+				return 0, false
+			}
+			param := parsed.Query().Get("page")
+			res, err := strconv.Atoi(param)
+			if err != nil {
+				return 0, false
+			}
+			return res, true
+		}
+	}
+	return 0, false
+}
+
+func (c *Client) countItems(ctx context.Context, reqURL string) (int, error) {
+	req, err := c.createAPIRequest(ctx, reqURL)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create count request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("failed to execute GitHub API request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusConflict {
+		return 0, nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("unexpected status code from GitHub API: %d", resp.StatusCode)
+	}
+
+	num, ok := lastPage(resp.Header.Get("Link"))
+	if ok {
+		return num, nil
+	}
+
+	var items []struct{}
+
+	err = json.NewDecoder(resp.Body).Decode(&items)
+	if err != nil {
+		return 0, fmt.Errorf("failed to decode GitHub API response: %w", err)
+	}
+	return len(items), nil
 }

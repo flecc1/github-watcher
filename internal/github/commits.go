@@ -10,46 +10,15 @@ import (
 )
 
 func (c *Client) GetCommitsLast7Days(ctx context.Context, owner string, name string) (int, error) {
-	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits", owner, name)
-
 	since := time.Now().UTC().AddDate(0, 0, -7).Format(time.RFC3339)
-	total := 0
+	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits?since=%s&per_page=1",
+		owner, name, url.QueryEscape(since))
 
-	for page := 1; ; page++ {
-		reqUrl := fmt.Sprintf("%s?since=%s&per_page=100&page=%d", endpoint, url.QueryEscape(since), page)
-
-		req, err := c.createAPIRequest(ctx, reqUrl)
-		if err != nil {
-			return 0, fmt.Errorf("failed to request commits last 7 days: %w", err)
-		}
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			return 0, fmt.Errorf("failed to request commits: %w", err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			if resp.StatusCode == http.StatusConflict {
-				return 0, nil
-			}
-
-			return 0, fmt.Errorf("GitHub API return status code: %d for commits of %s of %s",
-				resp.StatusCode, owner, name)
-		}
-
-		var commits []struct{}
-		err = json.NewDecoder(resp.Body).Decode(&commits)
-		resp.Body.Close()
-		if err != nil {
-			return 0, fmt.Errorf("failed to decode commits response: %w", err)
-		}
-		total += len(commits)
-		if len(commits) < 100 {
-			break
-		}
+	count, err := c.countItems(ctx, endpoint)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count commits of %s/%s: %w", owner, name, err)
 	}
-	return total, nil
+	return count, nil
 }
 
 func (c *Client) GetLastCommitAt(ctx context.Context, owner string, name string) (*time.Time, error) {
