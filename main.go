@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github-watcher/internal/bot"
 	"github-watcher/internal/logger"
+	"github-watcher/internal/scheduler"
 	"github-watcher/internal/service"
 	"github-watcher/internal/tracker"
 	"log/slog"
@@ -22,6 +23,7 @@ import (
 )
 
 const longPolling = 60
+const defaultCollectInterval = 6 * time.Hour
 
 func main() {
 	if err := godotenv.Load(); err != nil {
@@ -40,6 +42,15 @@ func main() {
 	if dsn == "" {
 		slog.Error("DATABASE_URL environment variable not set")
 		return
+	}
+
+	collectInterval := defaultCollectInterval
+	if value := os.Getenv("COLLECT_INTERVAL"); value == "" {
+		slog.Info("COLLECT_INTERVAL not set, using default", "interval", defaultCollectInterval)
+	} else if parsed, err := time.ParseDuration(value); err != nil || parsed <= 0 {
+		slog.Warn("Invalid COLLECT_INTERVAL, using default", "value", value, "interval", defaultCollectInterval)
+	} else {
+		collectInterval = parsed
 	}
 
 	dbCtx, dbCancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -111,11 +122,19 @@ func main() {
 		slog.Info("Bot commands registered")
 	}
 
+	sch := scheduler.NewScheduler(repositoryService, collectInterval)
+
 	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	workCtx, cancelWork := context.WithCancel(context.Background())
 	defer cancelWork()
+
+	schDone := make(chan struct{})
+	go func() {
+		defer close(schDone)
+		sch.Run(signalCtx)
+	}()
 
 	u := tgbotapi.NewUpdate(0)
 
@@ -139,6 +158,13 @@ func main() {
 		}
 	}()
 
+	allDone := make(chan struct{})
+	go func() {
+		<-done
+		<-schDone
+		close(allDone)
+	}()
+
 	<-signalCtx.Done()
 	stop()
 	slog.Info("Shutting down gracefully")
@@ -146,13 +172,13 @@ func main() {
 	botAPI.StopReceivingUpdates()
 
 	select {
-	case <-done:
+	case <-allDone:
 	case <-time.After(20 * time.Second):
 		slog.Warn("Shutdown timeout reached, cancelling active command")
 		cancelWork()
 
 		select {
-		case <-done:
+		case <-allDone:
 		case <-time.After(3 * time.Second):
 			slog.Warn("Active command did not stop in time")
 		}
