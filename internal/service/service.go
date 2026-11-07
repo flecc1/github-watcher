@@ -134,7 +134,7 @@ func (s *Service) Stats(ctx context.Context) ([]RepositoryStats, error) {
 			Repository: repo,
 		}
 
-		snapshots, err := s.storage.ListSnapshots(ctx, repo.ID)
+		snapshots, err := s.storage.ListLatestSnapshots(ctx, repo.ID, 1)
 		if err != nil {
 			item.Err = fmt.Errorf("failed to get snapshots for repository %s: %w", repo.FullName, err)
 		} else if len(snapshots) > 0 {

@@ -19,7 +19,7 @@ type RepositoryStorage interface {
 
 type SnapshotStorage interface {
 	SaveSnapshot(ctx context.Context, snapshot models.RepositorySnapshot) error
-	ListSnapshots(ctx context.Context, repositoryID int) ([]models.RepositorySnapshot, error)
+	ListLatestSnapshots(ctx context.Context, repositoryID int, limit int) ([]models.RepositorySnapshot, error)
 }
 
 var ErrRepositoryAlreadyTracked = errors.New("repository already tracked")

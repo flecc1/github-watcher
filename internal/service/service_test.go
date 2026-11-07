@@ -72,7 +72,7 @@ func (f *FakeStorage) SaveSnapshot(ctx context.Context, snapshot models.Reposito
 	return f.snapshotErr
 }
 
-func (f *FakeStorage) ListSnapshots(ctx context.Context, repositoryID int) ([]models.RepositorySnapshot, error) {
+func (f *FakeStorage) ListLatestSnapshots(ctx context.Context, repositoryID int, limit int) ([]models.RepositorySnapshot, error) {
 	return []models.RepositorySnapshot{}, f.snapshotsErr
 }
 

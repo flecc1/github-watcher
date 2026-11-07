@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	models2 "github-watcher/internal/models"
+	"github-watcher/internal/models"
 	"github-watcher/internal/storage"
 	"strings"
 )
@@ -18,13 +18,13 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) AddRepository(ctx context.Context, owner, name string) (models2.Repository, error) {
+func (s *Store) AddRepository(ctx context.Context, owner, name string) (models.Repository, error) {
 	fullName := fmt.Sprintf("%s/%s", owner, name)
 
 	query := `INSERT INTO repositories (owner, name, full_name) VALUES ($1, $2, $3)
 ON CONFLICT DO NOTHING RETURNING id, owner, full_name, name, added_at`
 
-	var repo models2.Repository
+	var repo models.Repository
 
 	err := s.db.QueryRowContext(ctx, query, owner, name, fullName).Scan(
 		&repo.ID,
@@ -35,14 +35,14 @@ ON CONFLICT DO NOTHING RETURNING id, owner, full_name, name, added_at`
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return models2.Repository{}, storage.ErrRepositoryAlreadyTracked
+			return models.Repository{}, storage.ErrRepositoryAlreadyTracked
 		}
-		return models2.Repository{}, fmt.Errorf("failed to add repository: %s: %w", fullName, err)
+		return models.Repository{}, fmt.Errorf("failed to add repository: %s: %w", fullName, err)
 	}
 	return repo, nil
 }
 
-func (s *Store) ListRepositories(ctx context.Context) ([]models2.Repository, error) {
+func (s *Store) ListRepositories(ctx context.Context) ([]models.Repository, error) {
 	query := `SELECT id, owner, name, full_name, added_at FROM repositories
 ORDER BY added_at DESC, id DESC`
 
@@ -54,10 +54,10 @@ ORDER BY added_at DESC, id DESC`
 		_ = rows.Close()
 	}(rows)
 
-	repositories := make([]models2.Repository, 0)
+	repositories := make([]models.Repository, 0)
 
 	for rows.Next() {
-		var repo models2.Repository
+		var repo models.Repository
 		if err := rows.Scan(&repo.ID, &repo.Owner, &repo.Name, &repo.FullName, &repo.AddedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan repository: %w", err)
 		}
@@ -88,7 +88,7 @@ func (s *Store) DeleteRepository(ctx context.Context, fullName string) error {
 	return nil
 }
 
-func (s *Store) SaveSnapshot(ctx context.Context, snapshot models2.RepositorySnapshot) error {
+func (s *Store) SaveSnapshot(ctx context.Context, snapshot models.RepositorySnapshot) error {
 	query := `INSERT INTO repository_snapshots (
                                   repository_id,
                                   stars, 
@@ -120,27 +120,25 @@ func (s *Store) SaveSnapshot(ctx context.Context, snapshot models2.RepositorySna
 	return nil
 }
 
-func (s *Store) ListSnapshots(ctx context.Context, repositoryID int) ([]models2.RepositorySnapshot, error) {
-	query := `SELECT
-id, repository_id, stars, forks, has_readme, open_issues,
+func (s *Store) ListLatestSnapshots(ctx context.Context, repositoryID int, limit int) ([]models.RepositorySnapshot, error) {
+	query := `SELECT id, repository_id, stars, forks, has_readme, open_issues,
 open_pull_requests, collected_at, commits_last_7_days,
 last_commit_at
 FROM repository_snapshots
 WHERE repository_id = $1
-ORDER BY collected_at DESC, id DESC`
+ORDER BY collected_at DESC, id DESC 
+LIMIT $2`
 
-	rows, err := s.db.QueryContext(ctx, query, repositoryID)
+	rows, err := s.db.QueryContext(ctx, query, repositoryID, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list snapshots for repository %d: %w", repositoryID, err)
+		return nil, fmt.Errorf("failed to list latest snapshots for repository %d: %w", repositoryID, err)
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+	defer rows.Close()
 
-	snapshots := make([]models2.RepositorySnapshot, 0)
+	latestSnapshots := make([]models.RepositorySnapshot, 0)
 
 	for rows.Next() {
-		var snapshot models2.RepositorySnapshot
+		var snapshot models.RepositorySnapshot
 
 		if err := rows.Scan(
 			&snapshot.ID,
@@ -156,10 +154,10 @@ ORDER BY collected_at DESC, id DESC`
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan snapshot for repository %d: %w", repositoryID, err)
 		}
-		snapshots = append(snapshots, snapshot)
+		latestSnapshots = append(latestSnapshots, snapshot)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to iterate snapshots for repository %d: %w", repositoryID, err)
 	}
-	return snapshots, nil
+	return latestSnapshots, nil
 }
