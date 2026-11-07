@@ -8,6 +8,7 @@ import (
 	"github-watcher/internal/service"
 	"github-watcher/internal/tracker"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,6 +20,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 )
+
+const longPolling = 60
 
 func main() {
 	if err := godotenv.Load(); err != nil {
@@ -57,7 +60,9 @@ func main() {
 	snapshotsTracker := tracker.NewTracker(githubClient, store)
 	repositoryService := service.NewService(githubClient, store, snapshotsTracker)
 
-	botAPI, err := tgbotapi.NewBotAPI(token)
+	botAPI, err := tgbotapi.NewBotAPIWithClient(token, tgbotapi.APIEndpoint, &http.Client{
+		Timeout: longPolling*time.Second + 30*time.Second,
+	})
 	if err != nil {
 		slog.Error("Failed to create bot api", logger.Err(err))
 		return
@@ -114,7 +119,7 @@ func main() {
 
 	u := tgbotapi.NewUpdate(0)
 
-	u.Timeout = 60
+	u.Timeout = longPolling
 	updates := botAPI.GetUpdatesChan(u)
 
 	done := make(chan struct{})
